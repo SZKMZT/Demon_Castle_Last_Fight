@@ -92,7 +92,7 @@ extern bool vsync2;
 
 Scene::Scene()
 {
-    scene = MAP_T1;
+    scene = START_MENU;
     step = 0;
     alpha = 0;
     music_vollume = 64;
@@ -146,8 +146,8 @@ void Scene::handleEvent(SDL_Event& e)
                 if (buttons[0].handleEvent(&e) == MOUSE_DOWN)
                 {
                     step = 0;
-                    //scene = NEW_GAME;
-                    scene = MAP_T1;
+                    scene = NEW_GAME;
+                    //scene = MAP_T1;
                 }
             }
             if (buttons[1].handleEvent(&e) == MOUSE_OUT) buttons[1].mClip.x = 0;
