@@ -5,8 +5,7 @@ using namespace std;
 class Button
 {
     public:
-        //Button() = default;
-        Button(Texture* texture = NULL, SDL_Rect pos = {}, SDL_Rect clip = {});
+        Button(Texture* texture = nullptr, SDL_Rect pos = {}, SDL_Rect clip = {});
         ButtonState handleEvent( SDL_Event* e );
         void render();
         void setClip(SDL_Rect clip) { mClip = clip; }

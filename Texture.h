@@ -34,7 +34,7 @@ class Texture
 		void setColor( Uint8 red, Uint8 green, Uint8 blue );
 		void setBlendMode( SDL_BlendMode blending );
 		void setAlpha( Uint8 alpha );
-		void render( int x, int y, SDL_Rect* custom = NULL, SDL_Rect* clip = NULL, bool zoom = false, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE );
+		void render( int x, int y, SDL_Rect* custom = nullptr, SDL_Rect* clip = nullptr, bool zoom = false, double angle = 0.0, SDL_Point* center = nullptr, SDL_RendererFlip flip = SDL_FLIP_NONE );
 		ButtonState handleEvent( SDL_Event* e );
 		int getWidth();
 		int getHeight();
@@ -51,7 +51,7 @@ class Texture
 
 Texture::Texture()
 {
-	mTexture = NULL;
+	mTexture = nullptr;
 	mWidth = 0;
 	mHeight = 0;
 	mx = 0;
@@ -69,7 +69,7 @@ void Texture::loadFromFile( string path, bool ColorKey, Uint8 r, Uint8 g, Uint8 
 {
     free();
 
-    SDL_Texture* newTexture = NULL;
+    SDL_Texture* newTexture = nullptr;
 
     SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
 	if (loadedSurface == nullptr) cout << "lỗi loadedSurface" << endl;
@@ -85,7 +85,7 @@ void Texture::loadFromFile( string path, bool ColorKey, Uint8 r, Uint8 g, Uint8 
 	mh = mHeight;
 
     SDL_FreeSurface( loadedSurface );
-	if(loadedSurface == NULL) {
+	if(loadedSurface == nullptr) {
         printf("Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError());
         return;
     }
@@ -112,7 +112,7 @@ void Texture::loadFromRenderedText( string textureText, SDL_Color textColor, TTF
 void Texture::free()
 {
 	SDL_DestroyTexture( mTexture );
-	mTexture = NULL;
+	mTexture = nullptr;
 	mWidth = 0;
 	mHeight = 0;
 	mx = 0;
@@ -142,12 +142,12 @@ void Texture::render( int x, int y, SDL_Rect* custom, SDL_Rect* clip, bool zoom,
 	if (mTexture == nullptr) cout << "lỗi mTexture 2" << endl;
 	SDL_Rect renderQuad = { x, y, mWidth, mHeight };
 
-	if( clip != NULL )
+	if( clip != nullptr )
 	{
 		renderQuad.w = clip->w;
 		renderQuad.h = clip->h;
 	}
-	if ( custom != NULL )
+	if ( custom != nullptr )
 	{
 		renderQuad.x = custom->x;
 		renderQuad.y = custom->y;
@@ -176,6 +176,10 @@ void Texture::render( int x, int y, SDL_Rect* custom, SDL_Rect* clip, bool zoom,
 	my = renderQuad.y;
 	mw = renderQuad.w;
 	mh = renderQuad.h;
+
+	while (angle >= 360) angle -= 360;
+	while (angle < 0) angle += 360;
+
 	SDL_RenderCopyEx( gRenderer, mTexture, clip, &renderQuad, angle, center, flip );
 }
 

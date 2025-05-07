@@ -6,6 +6,7 @@
 #include "Window.h"
 #include "Timer.h"
 #include "Button.h"
+#include "characters.h"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -18,6 +19,7 @@ enum Scenes
     SETTING_KEY = 3,
     NEW_GAME = 4,
     LOAD_GAME = 5,
+    MAP_T1,
 };
 
 class Scene
@@ -50,8 +52,8 @@ void loadMedia();
 void close();
 
 extern SDL_Renderer* gRenderer;
-TTF_Font* gTimes = NULL;
-TTF_Font* gArial = NULL;
+TTF_Font* gTimes = nullptr;
+TTF_Font* gArial = nullptr;
 Texture text;
 Texture logo;
 Texture menu;
@@ -62,9 +64,13 @@ Texture background;
 Texture black;
 Texture white;
 Texture transparent;
+Texture transparent2;
 Texture tick;
+Texture newgame;
+Texture hero2;
+Characters hero;
 SDL_Rect menuclips[ 4 ];
-Timer tlogo;
+Timer time1;
 Timer fpscc;
 Window gWindow;
 
@@ -79,21 +85,22 @@ int frame2 = 0;
 string fpscustom = "100";
 string ff = "100";
 bool a = false;
+double newgamey = 1;
 
 extern bool quit;
 extern bool vsync2;
 
 Scene::Scene()
 {
-    scene = START_MENU;
+    scene = MAP_T1;
     step = 0;
     alpha = 0;
     music_vollume = 64;
     SFX_vollume = 64;
     vsync = true;
     fps_show = false;
-    fps_max = false; //ưu tiên cao nhất sau đó tới vsync và mới tới fps custom
-    vn = true;
+    fps_max = false;
+    vn = true; 
 }
 
 Scene::~Scene()
@@ -104,6 +111,7 @@ Scene::~Scene()
 void Scene::handleEvent(SDL_Event& e)
 {
     gWindow.handleEvent(e);
+
     if (scene == MENU)
     {
         if( e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED && step != 0 )
@@ -128,46 +136,49 @@ void Scene::handleEvent(SDL_Event& e)
             buttons[3].mRenderRect.x = SCREEN_WIDTH * 0.765 - buttons[3].mRenderRect.w;
             buttons[3].mRenderRect.y = SCREEN_HEIGHT / 6 * 4 + buttons[3].mRenderRect.h * 1.125;
 
-            //cout << SCREEN_WIDTH << " " << SCREEN_HEIGHT << endl;
         }
-        if (buttons[0].handleEvent(&e) == MOUSE_OUT) buttons[0].mClip.x = 0;
-        else
+        if (step != 0)
         {
-            buttons[0].mClip.x = buttons[0].mClip.w;
-            if (buttons[0].handleEvent(&e) == MOUSE_DOWN)
+            if (buttons[0].handleEvent(&e) == MOUSE_OUT) buttons[0].mClip.x = 0;
+            else
             {
-                step = 0;
-                scene = NEW_GAME;
+                buttons[0].mClip.x = buttons[0].mClip.w;
+                if (buttons[0].handleEvent(&e) == MOUSE_DOWN)
+                {
+                    step = 0;
+                    //scene = NEW_GAME;
+                    scene = MAP_T1;
+                }
             }
-        }
-        if (buttons[1].handleEvent(&e) == MOUSE_OUT) buttons[1].mClip.x = 0;
-        else
-        {
-            buttons[1].mClip.x = buttons[1].mClip.w;
-            if (buttons[1].handleEvent(&e) == MOUSE_DOWN)
+            if (buttons[1].handleEvent(&e) == MOUSE_OUT) buttons[1].mClip.x = 0;
+            else
             {
-                step = 0;
-                scene = SETTING;
+                buttons[1].mClip.x = buttons[1].mClip.w;
+                if (buttons[1].handleEvent(&e) == MOUSE_DOWN)
+                {
+                    step = 0;
+                    scene = SETTING;
+                }
             }
-        }
-        if (buttons[2].handleEvent(&e) == MOUSE_OUT) buttons[2].mClip.x = 0;
-        else
-        {
-            buttons[2].mClip.x = buttons[2].mClip.w;
-            if (buttons[2].handleEvent(&e) == MOUSE_DOWN)
+            if (buttons[2].handleEvent(&e) == MOUSE_OUT) buttons[2].mClip.x = 0;
+            else
             {
-                step = 0;
-                scene = LOAD_GAME;
+                buttons[2].mClip.x = buttons[2].mClip.w;
+                if (buttons[2].handleEvent(&e) == MOUSE_DOWN)
+                {
+                    //step = 0;
+                    //scene = LOAD_GAME;
+                }
             }
-        }
-        if (buttons[3].handleEvent(&e) == MOUSE_OUT) buttons[3].mClip.x = 0;
-        else
-        {
-            buttons[3].mClip.x = buttons[3].mClip.w;
-            if (buttons[3].handleEvent(&e) == MOUSE_DOWN) 
+            if (buttons[3].handleEvent(&e) == MOUSE_OUT) buttons[3].mClip.x = 0;
+            else
             {
-                step = 0;
-                quit = true;
+                buttons[3].mClip.x = buttons[3].mClip.w;
+                if (buttons[3].handleEvent(&e) == MOUSE_DOWN) 
+                {
+                    step = 0;
+                    quit = true;
+                }
             }
         }
     }
@@ -198,8 +209,8 @@ void Scene::handleEvent(SDL_Event& e)
         }
         else if(buttons[9].handleEvent(&e) == MOUSE_DOWN )
         {
-            step = 0;
-            scene = SETTING_KEY;
+            //step = 0;
+            //scene = SETTING_KEY;
         } 
         else if(buttons[11].handleEvent(&e) == MOUSE_DOWN ) vnm = !vnm;
         else if(buttons[12].handleEvent(&e) == MOUSE_DOWN ) vnm = !vnm;
@@ -218,7 +229,7 @@ void Scene::handleEvent(SDL_Event& e)
                 vsync = vs;
                 gWindow.free();
                 SDL_DestroyRenderer( gRenderer );
-                gRenderer = NULL;
+                gRenderer = nullptr;
                 init();
             }
             step = 0;
@@ -250,14 +261,24 @@ void Scene::handleEvent(SDL_Event& e)
             else if(e.type == SDL_TEXTINPUT) if (e.text.text[0] >= '0' && e.text.text[0] <= '9' && ff.length() < 5) ff += e.text.text;
         }
     }
+
+    else if ( scene == MAP_T1 && step != 0 )
+    {
+        hero.motion(&e);
+        if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_1)
+        {
+            scene = MENU;
+            step = 0;
+        }
+    }
 }
 
 void Scene::logicScene()
 {
     vsync2 = vsync;
-    if ( scene == SETTING && step != 0 )
+    if ( scene == MAP_T1 && step != 0 )
     {
-
+        hero.checkvar();
     }
 }
 
@@ -269,40 +290,40 @@ void Scene::renderScene()
         {
             alpha = 0;
             logo.setAlpha( 0 );
-            tlogo.setstarttime();
+            time1.setstarttime();
             step = 1;
         }
         else if( step == 1 )
         {
-            if ( tlogo.gettime() >= 30 )
+            if ( time1.gettime() >= 30 )
             {
                 logo.setAlpha( alpha );
                 alpha += 5;
-                tlogo.setstarttime();
+                time1.setstarttime();
             }
             else if (alpha >= 255 )
             {
                 step = 2;
                 alpha = 255;
             }
-            logo.render( 0, 0, NULL, NULL, true );
+            logo.render( 0, 0, nullptr, nullptr, true );
         }
         else if( step == 2 )
         {
-            if ( tlogo.gettime() >= 3000 )
+            if ( time1.gettime() >= 3000 )
             {
                 step = 3;
-                tlogo.setstarttime();
+                time1.setstarttime();
             }
-            logo.render( 0, 0, NULL, NULL, true );
+            logo.render( 0, 0, nullptr, nullptr, true );
         }
         else if ( step == 3 )
         {
-            if ( tlogo.gettime() >= 30 )
+            if ( time1.gettime() >= 30 )
             {
                 logo.setAlpha( alpha );
                 alpha -= 5;
-                tlogo.setstarttime();
+                time1.setstarttime();
             }
             else if (alpha <= 0 )
             {
@@ -311,7 +332,7 @@ void Scene::renderScene()
                 alpha = 0;
                 step = 0;
             }
-            logo.render( 0, 0, NULL, NULL, true );
+            logo.render( 0, 0, nullptr, nullptr, true );
         }
     }
 
@@ -320,7 +341,7 @@ void Scene::renderScene()
         if ( step == 0)
         {
             buttons.clear();
-            menu.render( 0, 0, NULL, NULL, true );
+            menu.render( 0, 0, nullptr, nullptr, true );
 
             SDL_Rect custom;
             custom.w = SCREEN_WIDTH / 4;
@@ -345,7 +366,7 @@ void Scene::renderScene()
         }
         else if ( step == 1 )
         {
-            menu.render( 0, 0, NULL, NULL, true );
+            menu.render( 0, 0, nullptr, nullptr, true );
             buttons[0].render();
             buttons[1].render();
             buttons[2].render();
@@ -357,7 +378,7 @@ void Scene::renderScene()
     {
         if (step == 0)
         {
-            background.render( 0, 0, NULL, NULL, true );
+            background.render( 0, 0, nullptr, nullptr, true );
             black.setAlpha(175);
             SDL_Rect custom;
             custom.h = background.mh;
@@ -473,7 +494,7 @@ void Scene::renderScene()
         }
         else if (step == 1)
         {
-            background.render( 0, 0, NULL, NULL, true );
+            background.render( 0, 0, nullptr, nullptr, true );
             black.setAlpha(175);
             SDL_Rect custom;
             custom.h = background.mh;
@@ -541,6 +562,59 @@ void Scene::renderScene()
             }
         }
     }
+    
+    else if ( scene == NEW_GAME )
+    {
+        if ( step == 0 )
+        {
+            newgamey = 1;
+            time1.setstarttime();
+            step = 1;
+        }
+        else if (step == 1)
+        {
+            if ( time1.gettime() >= 10 )
+            {
+                newgamey -= 0.001;
+                time1.setstarttime();
+            }
+            SDL_Rect custom;
+            custom.w = SCREEN_WIDTH * 2 / 3;
+            custom.h = custom.w * newgame.mh / newgame.mw;
+            custom.x = SCREEN_WIDTH / 6;
+            custom.y = SCREEN_HEIGHT * newgamey;
+            newgame.render(0,0, &custom);
+
+            custom.w = SCREEN_HEIGHT / 6;
+            custom.h = SCREEN_WIDTH;
+            custom.x = SCREEN_WIDTH / 2 - custom.w / 2;
+            custom.y = SCREEN_HEIGHT / 6 * 5 - custom.h / 2 + custom.w / 2;
+            SDL_Point custom2 = {custom.w / 2, custom.h / 2 };
+            transparent2.render(0, 0, &custom, nullptr, false, -90, &custom2 );
+            custom.y = - custom.h / 2 + custom.w / 2;
+            transparent2.render(0, 0, &custom, nullptr, false, 90, &custom2 );
+            if ( SCREEN_HEIGHT * newgamey < - SCREEN_WIDTH * 2 / 3 * newgame.mh / newgame.mw) 
+            {
+                step = 0;
+                scene = MAP_T1;
+                newgamey = 1;
+            }
+        }
+    }
+
+    else if ( scene == MAP_T1 )
+    {
+        if (step==0)
+        {
+            hero.addtexture(&hero2);
+            step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.animated();
+        }
+    }
+
     if (fps_show)
     {
         if ( fpscc.gettime() >= 1000 )
@@ -583,9 +657,9 @@ void Scene::free()
     SDL_DestroyRenderer( gRenderer );
     TTF_CloseFont( gTimes );
     TTF_CloseFont( gArial );
-    gRenderer = NULL;
-    gTimes = NULL;
-    gArial = NULL;
+    gRenderer = nullptr;
+    gTimes = nullptr;
+    gArial = nullptr;
 }
 
 void Scene::init()
@@ -605,7 +679,10 @@ void loadMedia()
     black.loadFromFile( "assets/texture/img/black.png" );
     white.loadFromFile( "assets/texture/img/white.png" );
     transparent.loadFromFile( "assets/texture/img/transparent.png" );
+    transparent2.loadFromFile( "assets/texture/img/transparent 2.png" );
     tick.loadFromFile( "assets/texture/img/tick.png" );
+    newgame.loadFromFile( "assets/texture/img/new game.png" );
+    hero2.loadFromFile( "assets/texture/characters/hero.png" );
     for( int j = 0; j < 4; ++j )
     {
         menuclips[ j ].x = 0;
@@ -616,7 +693,6 @@ void loadMedia()
     
     gTimes = TTF_OpenFont( "assets/fonts/times.ttf", 28 );
     gArial = TTF_OpenFont( "assets/fonts/arial.ttf", 28 );
-    if (!gArial) cout << "fail" << endl;
 }
 
 void close()
@@ -637,9 +713,9 @@ void close()
     SDL_DestroyRenderer( gRenderer );
     TTF_CloseFont( gTimes );
     TTF_CloseFont( gArial );
-    gRenderer = NULL;
-    gTimes = NULL;
-    gArial = NULL;
+    gRenderer = nullptr;
+    gTimes = nullptr;
+    gArial = nullptr;
 
     TTF_Quit();
     IMG_Quit();

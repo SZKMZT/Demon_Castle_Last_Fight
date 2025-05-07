@@ -6,7 +6,7 @@
 using namespace std;
 
 Scene scene;
-SDL_Renderer* gRenderer = NULL;
+SDL_Renderer* gRenderer = nullptr;
 bool quit = false;
 bool vsync2 = true;
 extern string fpscustom;

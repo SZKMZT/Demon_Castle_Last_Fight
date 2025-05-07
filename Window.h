@@ -31,7 +31,7 @@ class Window
 
 Window::Window()
 {
-	mWindow = NULL;
+	mWindow = nullptr;
 	mWidth = 0;
 	mHeight = 0;
     mFullScreen = false;
@@ -40,7 +40,7 @@ Window::Window()
 
 void Window::init()
 {
-	SDL_Init(SDL_INIT_VIDEO);
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
 	TTF_Init();
     SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" );
@@ -50,6 +50,7 @@ void Window::init()
 	if (vsync2) gRenderer = SDL_CreateRenderer( mWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC );
 	else gRenderer = SDL_CreateRenderer( mWindow, -1, SDL_RENDERER_ACCELERATED );
 	SDL_SetRenderDrawColor( gRenderer, 0, 0, 0, 0xFF );
+	SDL_StopTextInput(); 
 }
 
 void Window::handleEvent( SDL_Event& e )
@@ -108,10 +109,10 @@ void Window::handleEvent( SDL_Event& e )
 
 void Window::free()
 {
-	if( mWindow != NULL )
+	if( mWindow != nullptr )
 	{
 		SDL_DestroyWindow( mWindow );
-        mWindow = NULL;
+        mWindow = nullptr;
         mWidth = 0;
 	    mHeight = 0;
         mFullScreen = false;
