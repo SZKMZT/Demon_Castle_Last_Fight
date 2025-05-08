@@ -68,6 +68,7 @@ Texture transparent2;
 Texture tick;
 Texture newgame;
 Texture hero2;
+Texture mapt1;
 Characters hero;
 SDL_Rect menuclips[ 4 ];
 Timer time1;
@@ -86,13 +87,14 @@ string fpscustom = "100";
 string ff = "100";
 bool a = false;
 double newgamey = 1;
+bool smooth_camera = true;
 
 extern bool quit;
 extern bool vsync2;
 
 Scene::Scene()
 {
-    scene = START_MENU;
+    scene = MAP_T1;
     step = 0;
     alpha = 0;
     music_vollume = 64;
@@ -146,8 +148,8 @@ void Scene::handleEvent(SDL_Event& e)
                 if (buttons[0].handleEvent(&e) == MOUSE_DOWN)
                 {
                     step = 0;
-                    scene = NEW_GAME;
-                    //scene = MAP_T1;
+                    //scene = NEW_GAME;
+                    scene = MAP_T1;
                 }
             }
             if (buttons[1].handleEvent(&e) == MOUSE_OUT) buttons[1].mClip.x = 0;
@@ -606,12 +608,16 @@ void Scene::renderScene()
     {
         if (step==0)
         {
-            hero.addtexture(&hero2);
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.getmapxy(&mapt1);
             step = 1;
         }
         else if (step == 1)
         {
-            hero.animated();
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapt1.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
         }
     }
 
@@ -683,6 +689,7 @@ void loadMedia()
     tick.loadFromFile( "assets/texture/img/tick.png" );
     newgame.loadFromFile( "assets/texture/img/new game.png" );
     hero2.loadFromFile( "assets/texture/characters/hero.png" );
+    mapt1.loadFromFile( "assets/texture/map/sanh1.png" );
     for( int j = 0; j < 4; ++j )
     {
         menuclips[ j ].x = 0;
