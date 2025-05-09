@@ -52,6 +52,7 @@ class Characters
         SDL_Rect camxy();
         int mx_camx, my_camy;
         vector<vector<int>> blockmap;
+        void startpoint(int blockxp, int blockyp);
     private:
         datachar datas;
         Texture* mTexture;
@@ -244,22 +245,53 @@ void Characters::move()
         {
             if (blockmap[i][j] == 1)
             {
-                if (checkvar(i*48, (i+1)*48, j*48, (j+1)*48 ) != 0) cout << checkvar(i*48, (i+1)*48, j*48, (j+1)*48 ) << endl;
                 switch (checkvar(i*48, (i+1)*48, j*48, (j+1)*48 ))
                 {
                     case UNDERC:
+                    if (j+1 >= 0 && j+1 < blockmap[0].size())
+                    {
+                        if (blockmap[i][j+1] == 1 && checkvar(i*48, (i+1)*48, (j+1)*48, (j+2)*48 ))
+                        {
+                            if (mPosX > i*48 + 24) {mPosX = (i+1)*48; break;}
+                            else if (mPosX + mWidth < i*48 + 24) {mPosX = (i-1)*48; break;}
+                        }
+                    }
                     mPosY = (j+1)*48;
                     break;
 
                     case ONC:
+                    if (j-1 >= 0 && j-1 < blockmap[0].size())
+                    {
+                        if (blockmap[i][j-1] == 1 && checkvar(i*48, (i+1)*48, (j-1)*48, (j)*48 ))
+                        {
+                            if (mPosX > i*48 + 24) {mPosX = (i+1)*48; break;}
+                            else if (mPosX + mWidth < i*48 + 24) {mPosX = (i-1)*48; break;}
+                        }
+                    }
                     mPosY = (j-1)*48;
                     break;
 
                     case RIGHTC:
+                    if (i+1 >= 0 && i+1 < blockmap.size())
+                    {
+                        if (blockmap[i+1][j] == 1 && checkvar((i+1)*48, (i+2)*48, (j)*48, (j+1)*48 ))
+                        {
+                            if (mPosY > j*48 + 24) {mPosY = (j+1)*48; break;}
+                            else if (mPosY + mHeight < j*48 + 24) {mPosY = (j-1)*48; break;}
+                        }
+                    }
                     mPosX = (i+1)*48;
                     break;
 
                     case LEFTC:
+                    if (i-1 >= 0 && i-1 < blockmap.size())
+                    {
+                        if (blockmap[i-1][j] == 1 && checkvar((i-1)*48, (i)*48, (j)*48, (j+1)*48 ))
+                        {
+                            if (mPosY > j*48 + 24) {mPosY = (j+1)*48; break;}
+                            else if (mPosY + mHeight < j*48 + 24) {mPosY = (j-1)*48; break;}
+                        }
+                    }
                     mPosX = (i-1)*48;
                     break;
                 }
@@ -336,69 +368,66 @@ void Characters::cameraxy()
 
     camera.w = SCREEN_WIDTH;
     camera.h = SCREEN_HEIGHT;
-    if (SDL_GetTicks() - lasttime >= 4)
+    if (smooth_camera)
     {
-        if (smooth_camera)
+        double distance = sqrt( pow( camx - ( mPosX + mWidth / 2 ), 2 ) + pow( camy - ( mPosY + mHeight / 2 ), 2 ) );
+        if (distance > 150 * distance / ( 3000 * (1000/deltatime) - 9 * distance ) + 1) 
+        //if này để khi distance đến 1 giới hạn nhỏ nhất định thì tọa độ gắn trung tâm luôn tránh tình trạng giật
+        //công thức tính để tránh trường hợp khi còn x distance thì bước nhảy trên 1 vòng lặp lớn hơn 2 lần distance giới hạn dẫn đến tọa độ liên tục âm dương mà không tiến tới khoảng cách không đạt tới giới hạn được
+        //có thể có cách dễ hơn nhưng phòng trường hợp fps và tốc độ thay đổi dẫn tới sai số thì đây là 1 giải pháp, và thật sự thì nó có ích
+        // + 1 để tránh vì double đổi sang int có thể sai số nên +1 để phòng trường hợp đó 
         {
-            double distance = sqrt( pow( camx - ( mPosX + mWidth / 2 ), 2 ) + pow( camy - ( mPosY + mHeight / 2 ), 2 ) );
-            if (distance > 150 * distance / ( 3000 * (1000/deltatime) - 9 * distance ) + 1) 
-            //if này để khi distance đến 1 giới hạn nhỏ nhất định thì tọa độ gắn trung tâm luôn tránh tình trạng giật
-            //công thức tính để tránh trường hợp khi còn x distance thì bước nhảy trên 1 vòng lặp lớn hơn 2 lần distance giới hạn dẫn đến tọa độ liên tục âm dương mà không tiến tới khoảng cách không đạt tới giới hạn được
-            //có thể có cách dễ hơn nhưng phòng trường hợp fps và tốc độ thay đổi dẫn tới sai số thì đây là 1 giải pháp, và thật sự thì nó có ích
-            // + 1 để tránh vì double đổi sang int có thể sai số nên +1 để phòng trường hợp đó 
-            {
-                if (mVelX == 0 && mVelY == 0) 
-                if (distance <= datas.speed * deltatime / 1000)
-                {
-                    camx = mPosX + mWidth / 2;
-                    camy = mPosY + mHeight / 2;
-                }
-                camvx = (distance * (datas.speed * 9 / 10) / 150 + datas.speed / 10) * cos(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
-                camvy = (distance * (datas.speed * 9 / 10) / 150 + datas.speed / 10) * sin(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
-            }
-            else
+            if (mVelX == 0 && mVelY == 0) 
+            if (distance <= datas.speed * deltatime / 1000)
             {
                 camx = mPosX + mWidth / 2;
                 camy = mPosY + mHeight / 2;
-            }   
-
-            camx += camvx*deltatime/1000;
-            if( camx < 0 )
-            {
-                camx = 0;
             }
-            else if ( camx > mapx )
-            {
-                camx = mapx;
-            }
-
-            camy += camvy*deltatime/1000;
-            if( camy < 0 )
-            {
-                camy = 0;
-            }
-            else if ( camy > mapy )
-            {
-                camy = mapy;
-            }
+            camvx = (distance * (datas.speed * 9 / 10) / 150 + datas.speed / 10) * cos(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
+            camvy = (distance * (datas.speed * 9 / 10) / 150 + datas.speed / 10) * sin(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
         }
         else
         {
             camx = mPosX + mWidth / 2;
             camy = mPosY + mHeight / 2;
+        }   
+
+        camx += camvx*deltatime/1000;
+        if( camx < 0 )
+        {
+            camx = 0;
+        }
+        else if ( camx > mapx )
+        {
+            camx = mapx;
         }
 
-        camera.x = round(camx - SCREEN_WIDTH / 2);
-        camera.y = round(camy - SCREEN_HEIGHT / 2);
-
-        if( camera.x < 0 ) camera.x = 0; 
-        if( camera.y < 0 ) camera.y = 0;
-        if( camera.x > mapx - camera.w ) camera.x = mapx - camera.w;
-        if( camera.y > mapy - camera.h ) camera.y = mapy - camera.h;
-
-        mx_camx = round(mPosX - camera.x);
-        my_camy = round(mPosY - camera.y);
+        camy += camvy*deltatime/1000;
+        if( camy < 0 )
+        {
+            camy = 0;
+        }
+        else if ( camy > mapy )
+        {
+            camy = mapy;
+        }
     }
+    else
+    {
+        camx = mPosX + mWidth / 2;
+        camy = mPosY + mHeight / 2;
+    }
+
+    camera.x = round(camx - SCREEN_WIDTH / 2);
+    camera.y = round(camy - SCREEN_HEIGHT / 2);
+
+    if( camera.x < 0 ) camera.x = 0; 
+    if( camera.y < 0 ) camera.y = 0;
+    if( camera.x > mapx - camera.w ) camera.x = mapx - camera.w;
+    if( camera.y > mapy - camera.h ) camera.y = mapy - camera.h;
+
+    mx_camx = round(mPosX - camera.x);
+    my_camy = round(mPosY - camera.y);
 }
 
 SDL_Rect Characters::camxy()
@@ -406,7 +435,7 @@ SDL_Rect Characters::camxy()
     return camera;
 }
 
-Checkvar Characters::checkvar(int x1, int x2, int y1, int y2)
+Checkvar Characters::checkvar(int x1, int x2, int y1, int y2) //cái này tưởng nhanh mà lâu vkl hơn chục cái trường hợp, xong còn lỗi lên lỗi xuống
 {
     int ix = x2 - mPosX;
     int iy = y2 - mPosY;
@@ -455,4 +484,21 @@ Checkvar Characters::checkvar(int x1, int x2, int y1, int y2)
         }
     }
     return UNKNOWNC;
+}
+
+void Characters::startpoint(int blockxp, int blockyp)
+{
+    mPosX = blockxp*48-48;
+    mPosY = blockyp*48-48;
+
+    camx = mPosX + mWidth / 2;
+    camy = mPosY + mHeight / 2;
+
+    camera.x = mPosX + mWidth / 2 - SCREEN_WIDTH / 2;
+    camera.y = mPosY + mHeight / 2 - SCREEN_HEIGHT / 2;
+
+    if( camera.x < 0 ) camera.x = 0; 
+    if( camera.y < 0 ) camera.y = 0;
+    if( camera.x > mapx - SCREEN_WIDTH ) camera.x = mapx - SCREEN_WIDTH;
+    if( camera.y > mapy - SCREEN_HEIGHT ) camera.y = mapy - SCREEN_HEIGHT;
 }

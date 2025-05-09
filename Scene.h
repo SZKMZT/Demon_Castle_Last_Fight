@@ -231,7 +231,7 @@ void Scene::handleEvent(SDL_Event& e)
                 fpscustom = ff;
             }
             else fpscustom = ff;
-            
+
             if (vsync != vs)
             {
                 vsync = vs;
@@ -615,6 +615,7 @@ void Scene::renderScene()
         {
             hero.addtexture(&hero2, 3, 4, 6);
             hero.getmapxy(&mapt1, "sanh1.txt");
+            hero.startpoint(41,43);
             step = 1;
         }
         else if (step == 1)
