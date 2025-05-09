@@ -2,6 +2,8 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <string>
 #include "Timer.h"
 using namespace std;
 
@@ -11,6 +13,17 @@ struct datachar
     int power;
     int mana;
     int speed; // pixel/s
+};
+
+enum Checkvar
+{
+    OUTSIDEC = 0,
+    ONC = 1,
+    UNDERC = 2,
+    LEFTC = 3,
+    RIGHTC = 4,
+    BETWEENC = 5,
+    UNKNOWNC = 6, //cho đủ tránh lỗi chứ không sài :V
 };
 
 enum Direction
@@ -31,16 +44,18 @@ class Characters
         Characters(Texture* texture = nullptr);
         void addtexture(Texture* texture, int w, int h, int f);
         void motion( SDL_Event* e );
-        void checkvar();
+        void move();
+        Checkvar checkvar(int x1, int x2, int y1, int y2);
         void animated(int mx, int my);
-        void getmapxy(Texture* mapp);
+        void getmapxy(Texture* mapp, string mappp);
         void cameraxy();
         SDL_Rect camxy();
         int mx_camx, my_camy;
+        vector<vector<int>> blockmap;
     private:
         datachar datas;
         Texture* mTexture;
-        int mVelX, mVelY;
+        double mVelX, mVelY;
         double mPosX, mPosY;
         int mWidth;
 		int mHeight;
@@ -55,7 +70,7 @@ class Characters
         Timer speedrender;
         Uint32 lasttime;
         Uint32 lasttime2;
-        int deltatime;
+        double deltatime;
 };
 
 Characters::Characters(Texture* texture)
@@ -94,8 +109,8 @@ Characters::Characters(Texture* texture)
 void Characters::addtexture(Texture* texture, int w, int h, int f)
 {
     mTexture = texture;
-    mWidth = texture->mw / w;
-    mHeight = texture->mh / h;
+    mWidth = texture->getWidth() / w;
+    mHeight = texture->getHeight() / h;
     framerate = f;
     clipss.clear();
     for (int i = 0; i < h; i++)
@@ -108,6 +123,21 @@ void Characters::addtexture(Texture* texture, int w, int h, int f)
         clip.h = mHeight;
         clipss.push_back(clip);
     }
+}
+
+void Characters::getmapxy(Texture* mapp, string mappp)
+{
+    blockmap.clear();
+    mapx = mapp->getWidth();
+    mapy = mapp->getHeight();
+    string m = "assets/texture/map/" + mappp;
+    ifstream MapF(m);
+    int wp, hp; MapF >> wp >> hp;
+    blockmap.resize(wp, vector<int>(hp));
+    for (int i = 0; i < hp; i++)
+    for (int j = 0; j < wp; j++)
+    MapF >>  blockmap[j][i];
+    MapF.close();
 }
 
 void Characters::motion( SDL_Event* e )
@@ -180,19 +210,12 @@ void Characters::motion( SDL_Event* e )
     }
 }
 
-void Characters::checkvar()
+void Characters::move()
 {
     deltatime = speedrender.getdeltatime();
-    if (SDL_GetTicks() - lasttime2 <= 4)
-    {
-        mPosX += mVelX*4/1000;
-        mPosY += mVelY*4/1000;
-    }
-    else
-    {
-        mPosX += mVelX*deltatime/1000;
-        mPosY += mVelY*deltatime/1000;
-    }
+    mPosX += mVelX*deltatime/1000;
+    mPosY += mVelY*deltatime/1000;
+    
     if( mPosX < 0 )
     {
         mPosX = 0;
@@ -209,7 +232,41 @@ void Characters::checkvar()
     else if ( mPosY + mHeight > mapy )
     {
         mPosY = mapy - mHeight;
-    }}  
+    }
+
+    int blockx = floor( mPosX / 48 );
+    int blocky = floor( mPosY / 48 );
+    for (int j = blocky-1; j < blocky+2; j++)
+    if (j >= 0 && j < blockmap[0].size() )
+    {
+        for (int i = blockx-1; i < blockx+2; i++)
+        if (i >= 0 && i < blockmap.size() )
+        {
+            if (blockmap[i][j] == 1)
+            {
+                if (checkvar(i*48, (i+1)*48, j*48, (j+1)*48 ) != 0) cout << checkvar(i*48, (i+1)*48, j*48, (j+1)*48 ) << endl;
+                switch (checkvar(i*48, (i+1)*48, j*48, (j+1)*48 ))
+                {
+                    case UNDERC:
+                    mPosY = (j+1)*48;
+                    break;
+
+                    case ONC:
+                    mPosY = (j-1)*48;
+                    break;
+
+                    case RIGHTC:
+                    mPosX = (i+1)*48;
+                    break;
+
+                    case LEFTC:
+                    mPosX = (i-1)*48;
+                    break;
+                }
+            }
+        }
+    }
+}  
 
 void Characters::animated(int mx, int my)
 {
@@ -270,12 +327,6 @@ void Characters::animated(int mx, int my)
     }
 }
 
-void Characters::getmapxy(Texture* mapp)
-{
-    mapx = mapp->mw;
-    mapy = mapp->mh;
-}
-
 void Characters::cameraxy()
 {
     if (SDL_GetTicks() - lasttime >= 4) 
@@ -290,27 +341,25 @@ void Characters::cameraxy()
         if (smooth_camera)
         {
             double distance = sqrt( pow( camx - ( mPosX + mWidth / 2 ), 2 ) + pow( camy - ( mPosY + mHeight / 2 ), 2 ) );
-            if (distance < double(datas.speed)*deltatime/2000)
+            if (distance > 150 * distance / ( 3000 * (1000/deltatime) - 9 * distance ) + 1) 
+            //if này để khi distance đến 1 giới hạn nhỏ nhất định thì tọa độ gắn trung tâm luôn tránh tình trạng giật
+            //công thức tính để tránh trường hợp khi còn x distance thì bước nhảy trên 1 vòng lặp lớn hơn 2 lần distance giới hạn dẫn đến tọa độ liên tục âm dương mà không tiến tới khoảng cách không đạt tới giới hạn được
+            //có thể có cách dễ hơn nhưng phòng trường hợp fps và tốc độ thay đổi dẫn tới sai số thì đây là 1 giải pháp, và thật sự thì nó có ích
+            // + 1 để tránh vì double đổi sang int có thể sai số nên +1 để phòng trường hợp đó 
             {
-                camx = mPosX + mWidth / 2;
-                camy = mPosY + mHeight / 2;
+                if (mVelX == 0 && mVelY == 0) 
+                if (distance <= datas.speed * deltatime / 1000)
+                {
+                    camx = mPosX + mWidth / 2;
+                    camy = mPosY + mHeight / 2;
+                }
+                camvx = (distance * (datas.speed * 9 / 10) / 150 + datas.speed / 10) * cos(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
+                camvy = (distance * (datas.speed * 9 / 10) / 150 + datas.speed / 10) * sin(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
             }
             else
             {
-                camvx = (distance * (datas.speed * 9 / 10) / 150 + datas.speed / 10) * cos(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
-                camvy = (distance * (datas.speed * 9 / 10) / 150 + datas.speed / 10) * sin(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
-                /*if (mVelX == 0 && mVelY == 0)
-                {
-                    camvx = datas.speed * cos(atan2((( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
-                    camvy = datas.speed * sin(atan2((( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
-        
-                }
-                else
-                {
-                    camvx = (distance * datas.speed / 150 ) * cos(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
-                    camvy = (distance * datas.speed / 150 ) * sin(atan2(( ( mPosY + mHeight / 2 ) - camy ) , ( ( mPosX + mWidth / 2 ) - camx )));
-        
-                }*/
+                camx = mPosX + mWidth / 2;
+                camy = mPosY + mHeight / 2;
             }   
 
             camx += camvx*deltatime/1000;
@@ -332,8 +381,6 @@ void Characters::cameraxy()
             {
                 camy = mapy;
             }
-
-            cout << camx << " " << camy << endl;
         }
         else
         {
@@ -341,20 +388,71 @@ void Characters::cameraxy()
             camy = mPosY + mHeight / 2;
         }
 
-        camera.x = int(camx - SCREEN_WIDTH / 2);
-        camera.y = int(camy - SCREEN_HEIGHT / 2);
+        camera.x = round(camx - SCREEN_WIDTH / 2);
+        camera.y = round(camy - SCREEN_HEIGHT / 2);
 
         if( camera.x < 0 ) camera.x = 0; 
         if( camera.y < 0 ) camera.y = 0;
         if( camera.x > mapx - camera.w ) camera.x = mapx - camera.w;
         if( camera.y > mapy - camera.h ) camera.y = mapy - camera.h;
 
-        mx_camx = mPosX - camera.x;
-        my_camy = mPosY - camera.y;
+        mx_camx = round(mPosX - camera.x);
+        my_camy = round(mPosY - camera.y);
     }
 }
 
 SDL_Rect Characters::camxy()
 {
     return camera;
+}
+
+Checkvar Characters::checkvar(int x1, int x2, int y1, int y2)
+{
+    int ix = x2 - mPosX;
+    int iy = y2 - mPosY;
+
+    if (mPosX + mWidth <= x1 || mPosX >= x2 || mPosY + mHeight <= y1 || mPosY >= y2) return OUTSIDEC;
+    else if (mPosX == x1 && mPosY == y1) return BETWEENC;
+    else if((mPosX + mWidth >= (x1+x2)/2 && mPosX + mWidth <= x2 && mPosY >= y1 && mPosY <= (y1+y2)/2) ||
+            (mPosX >= x1 && mPosX <= (x1+x2)/2 && mPosY >= y1 && mPosY <= (y1+y2)/2) ||
+            (mPosX >= x1 && mPosX <= (x1+x2)/2 && mPosY + mHeight >= (y1+y2)/2 && mPosY + mHeight <= y2) ||
+            (mPosX + mWidth >= (x1+x2)/2 && mPosX + mWidth <= x2 && mPosY + mHeight >= (y1+y2)/2 && mPosY + mHeight <= y2)) return BETWEENC;
+    else 
+    {
+        if (mPosY > (y1+y2)/2)
+        {
+            if (ix >= mWidth * 3 / 2)
+            {
+                if (mWidth*2 - ix > iy) return UNDERC;
+                else return LEFTC;
+            }
+            else
+            {
+                if (ix > iy) return UNDERC;
+                else return RIGHTC;
+            }
+        }
+        else if (mPosY + mHeight < (y1+y2)/2)
+        {
+            if (ix >= mWidth * 3 / 2)
+            {
+                if (mWidth*2 - ix > mHeight*2 - iy) return ONC;
+                else return LEFTC;
+            }
+            else
+            {
+                if (ix > mHeight*2 - iy) return ONC;
+                else return RIGHTC;
+            }
+        }
+        else
+        {
+            if (iy >= mHeight/2 && iy <= mHeight * 3 / 2)
+            {
+                if (ix < mWidth/2) return RIGHTC;
+                else return LEFTC;
+            }
+        }
+    }
+    return UNKNOWNC;
 }

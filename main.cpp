@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 
         SDL_RenderPresent(gRenderer);
 
-        if (!scene.fps_max && !scene.vsync) while ( SDL_GetTicks() - t <= 1000.f / stoi(fpscustom) ){}
+        if (!scene.fps_max && !scene.vsync) while ( SDL_GetTicks() - t < 1000.f / stoi(fpscustom) ){}
     }
 
     scene.free();

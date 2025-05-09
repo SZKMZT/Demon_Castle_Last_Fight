@@ -225,7 +225,13 @@ void Scene::handleEvent(SDL_Event& e)
             fps_show = fpss;
             fps_max = fpm;
             vn = vnm;
-            fpscustom = ff;
+            if (stoi(ff)<25)
+            {
+                ff = "25";
+                fpscustom = ff;
+            }
+            else fpscustom = ff;
+            
             if (vsync != vs)
             {
                 vsync = vs;
@@ -280,7 +286,7 @@ void Scene::logicScene()
     vsync2 = vsync;
     if ( scene == MAP_T1 && step != 0 )
     {
-        hero.checkvar();
+        hero.move();
     }
 }
 
@@ -363,7 +369,6 @@ void Scene::renderScene()
             custom.x = SCREEN_WIDTH * 0.765 - custom.w;
             custom.y = SCREEN_HEIGHT / 6 * 4 + custom.h * 1.125;
             buttons.emplace_back(&menu2, custom, menuclips[3]);
-
             step = 1;
         }
         else if ( step == 1 )
@@ -609,7 +614,7 @@ void Scene::renderScene()
         if (step==0)
         {
             hero.addtexture(&hero2, 3, 4, 6);
-            hero.getmapxy(&mapt1);
+            hero.getmapxy(&mapt1, "sanh1.txt");
             step = 1;
         }
         else if (step == 1)
@@ -657,7 +662,12 @@ void Scene::free()
     black.free();
     white.free();
     transparent.free();
+    transparent2.free();
     tick.free();
+    text.free();
+    newgame.free();
+    hero2.free();
+    mapt1.free();
     buttons.clear();
     gWindow.free();
     SDL_DestroyRenderer( gRenderer );
@@ -714,6 +724,10 @@ void close()
     white.free();
     transparent.free();
     tick.free();
+    text.free();
+    newgame.free();
+    hero2.free();
+    mapt1.free();
 
     gWindow.free();
 
