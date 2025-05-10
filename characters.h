@@ -44,7 +44,10 @@ class Characters
         Characters(Texture* texture = nullptr);
         void addtexture(Texture* texture, int w, int h, int f);
         void motion( SDL_Event* e );
+        void motionpixel( SDL_Event* e );
+        void mousepixel( SDL_Event* e );
         void move();
+        void movepixel();
         Checkvar checkvar(int x1, int x2, int y1, int y2);
         void animated(int mx, int my);
         void getmapxy(Texture* mapp, string mappp);
@@ -53,6 +56,7 @@ class Characters
         int mx_camx, my_camy;
         vector<vector<int>> blockmap;
         void startpoint(int blockxp, int blockyp);
+        int blockevent;
     private:
         datachar datas;
         Texture* mTexture;
@@ -72,6 +76,10 @@ class Characters
         Uint32 lasttime;
         Uint32 lasttime2;
         double deltatime;
+        bool motionp;
+        int movepx, movepy;
+        int movepxe, movepye;
+        bool b1, m1, m2;
 };
 
 Characters::Characters(Texture* texture)
@@ -105,6 +113,15 @@ Characters::Characters(Texture* texture)
     deltatime = speedrender.getdeltatime();
     mx_camx = 0;
     my_camy = 0;
+    blockevent = 0;
+    motionp = false;
+    movepx = 0;
+    movepy = 0;
+    movepxe = 0;
+    movepye = 0;
+    b1 = false;
+    m1 = false;
+    m2 = false;
 }
 
 void Characters::addtexture(Texture* texture, int w, int h, int f)
@@ -298,6 +315,13 @@ void Characters::move()
             }
         }
     }
+
+    if (blockmap[floor(( mPosX + mWidth/2 ) / 48 )][ floor(( mPosY + mHeight/2 ) / 48 )] != 0) 
+    {
+        if ( checkvar((floor(( mPosX + mWidth/2 ) / 48 ))*48, ((floor(( mPosX + mWidth/2 ) / 48 ))+1)*48, (floor(( mPosY + mHeight/2 ) / 48 ))*48, ((floor(( mPosY + mHeight/2 ) / 48 ))+1)*48 ) == BETWEENC ) 
+        blockevent = blockmap[floor(( mPosX + mWidth/2 ) / 48 )][floor(( mPosY + mHeight/2 ) / 48 )];
+    }
+    else blockevent = 0;
 }  
 
 void Characters::animated(int mx, int my)
@@ -310,31 +334,58 @@ void Characters::animated(int mx, int my)
     {
         if (mVelX == 0 && mVelY == 0)
         {
-            cframe = 2;
-            switch (direction)
+            if (cframe != 2 && b1)
             {
-                case FRONT:
-                mTexture->render(mx, my, nullptr, &clipss[7]);
-                break;
+                switch (direction)
+                {
+                    case FRONT:
+                    mTexture->render(mx, my, nullptr, &clipss[6+cframe]);
+                    break;
 
-                case BEHIND:
-                mTexture->render(mx, my, nullptr, &clipss[1]);
-                break;
+                    case BEHIND:
+                    mTexture->render(mx, my, nullptr, &clipss[0+cframe]);
+                    break;
 
-                case RIGHT:
-                mTexture->render(mx, my, nullptr, &clipss[4], false, 0, nullptr, SDL_FLIP_HORIZONTAL);
-                break;
+                    case RIGHT:
+                    mTexture->render(mx, my, nullptr, &clipss[3+cframe], false, 0, nullptr, SDL_FLIP_HORIZONTAL);
+                    break;
 
-                case LEFT:
-                mTexture->render(mx, my, nullptr, &clipss[4]);
-                break;
-            
-            default:
-                break;
+                    case LEFT:
+                    mTexture->render(mx, my, nullptr, &clipss[3+cframe]);
+                    break;
+                default:
+                    break;
+                }
+            }
+            else
+            {
+                b1 = false;
+                switch (direction)
+                {
+                    case FRONT:
+                    mTexture->render(mx, my, nullptr, &clipss[7]);
+                    break;
+
+                    case BEHIND:
+                    mTexture->render(mx, my, nullptr, &clipss[1]);
+                    break;
+
+                    case RIGHT:
+                    mTexture->render(mx, my, nullptr, &clipss[4], false, 0, nullptr, SDL_FLIP_HORIZONTAL);
+                    break;
+
+                    case LEFT:
+                    mTexture->render(mx, my, nullptr, &clipss[4]);
+                    break;
+                
+                default:
+                    break;
+                }
             }
         }
         else
         {
+            b1 = true;
             switch (direction)
             {
                 case FRONT:
@@ -501,4 +552,224 @@ void Characters::startpoint(int blockxp, int blockyp)
     if( camera.y < 0 ) camera.y = 0;
     if( camera.x > mapx - SCREEN_WIDTH ) camera.x = mapx - SCREEN_WIDTH;
     if( camera.y > mapy - SCREEN_HEIGHT ) camera.y = mapy - SCREEN_HEIGHT;
+}
+
+void Characters::motionpixel( SDL_Event* e )
+{
+    int blockx = floor( (mPosX + mWidth/2) / 48 );
+    int blocky = floor( (mPosY + mHeight/2) / 48 );
+    if (!motionp)
+    {
+        if( e->type == SDL_KEYDOWN )
+        {
+            switch( e->key.keysym.sym )
+            {
+                case SDLK_w:
+                if (blocky - 1 >= 0 && blockmap[blockx][blocky-1] != 1)
+                {
+                    mVelY = - datas.speed; 
+                    direction = FRONT; 
+                    movepx = blockx;
+                    movepy = blocky - 1;
+                    motionp = true;
+                }
+                break;
+
+                case SDLK_s: 
+                if (blocky + 1 < blockmap[0].size() && blockmap[blockx][blocky+1] != 1)
+                {
+                    mVelY = datas.speed; 
+                    direction = BEHIND;  
+                    movepx = blockx;
+                    movepy = blocky + 1;
+                    motionp = true;
+                }
+                break;
+
+                case SDLK_a: 
+                if (blockx - 1 >= 0 && blockmap[blockx -1][blocky] != 1)
+                {
+                    mVelX = - datas.speed; 
+                    direction = LEFT; 
+                    movepx = blockx - 1;
+                    movepy = blocky;
+                    motionp = true;
+                }
+                break;
+
+                case SDLK_d: 
+                if (blockx + 1 >= 0 && blockmap[blockx+1][blocky] != 1)
+                {
+                    mVelX = datas.speed; 
+                    direction = RIGHT; 
+                    movepx = blockx + 1;
+                    movepy = blocky;
+                    motionp = true;
+                }
+                break;
+            }
+        }
+    }
+}        
+
+void Characters::movepixel()
+{
+    deltatime = speedrender.getdeltatime(); 
+    int blockx = floor( mPosX / 48 );
+    int blocky = floor( mPosY / 48 );
+    if (!m1)
+    {
+        mPosX += mVelX*deltatime/1000;
+        mPosY += mVelY*deltatime/1000;
+
+        if (fabs(mPosX - movepx*48) <= fabs(mVelX*deltatime/500)) 
+        {
+            mPosX = movepx*48;  
+            mVelX = 0;
+        }
+        if (fabs(mPosY - movepy*48) <= fabs(mVelY*deltatime/500)) 
+        {
+            mPosY = movepy*48; 
+            mVelY = 0;
+        } 
+
+        if (mPosX == movepx*48 && mPosY == movepy*48 )
+        {
+            motionp = false;
+            mVelX = 0;
+            mVelY = 0;
+        }
+    }
+    else
+    {
+        if (!m2)
+        {
+            if (fabs(mPosX - movepxe*48) >= fabs(blocky - movepye))
+            {
+                if (mPosX - movepxe*48 < 0 && blockx + 1 < blockmap.size() && blockmap[blockx+1][blocky] != 1) 
+                {
+                    movepx = blockx+1;
+                    movepy = blocky;
+                    mVelX = datas.speed;
+                    direction = RIGHT;
+                }
+                else if (mPosX - movepxe*48 > 0 && blockx - 1 < blockmap.size() && blockmap[blockx-1][blocky] != 1)
+                {
+                    movepx = blockx-1;
+                    movepy = blocky;
+                    mVelX = -datas.speed;
+                    direction = LEFT;
+                }
+                else
+                {
+                    if (mPosY - movepye*48 < 0 && blocky + 1 < blockmap[0].size() && blockmap[blockx][blocky+1] != 1) 
+                    {
+                        movepx = blockx;
+                        movepy = blocky+1;
+                        mVelY = datas.speed;
+                        direction = BEHIND;
+                    }
+                    else if (mPosY - movepye*48 > 0 && blocky - 1 < blockmap[0].size() && blockmap[blockx][blocky-1] != 1)
+                    {
+                        movepx = blockx;
+                        movepy = blocky-1;
+                        mVelY = -datas.speed;
+                        direction = FRONT;
+                    }
+                    else
+                    {
+                        mVelX = 0;
+                        mVelY = 0;
+                        m1 = false;
+                        motionp = false;
+                    }
+                }
+            }
+            else
+            {
+                if (mPosY - movepye*48 < 0 && blocky + 1 < blockmap[0].size() && blockmap[blockx][blocky+1] != 1) 
+                {
+                    movepx = blockx;
+                    movepy = blocky+1;
+                    mVelY = datas.speed;
+                    direction = BEHIND;
+                }
+                else if (mPosY - movepye*48 > 0 && blocky - 1 < blockmap[0].size() && blockmap[blockx][blocky-1] != 1)
+                {
+                    movepx = blockx;
+                    movepy = blocky-1;
+                    mVelY = -datas.speed;
+                    direction = FRONT;
+                }
+                else
+                {
+                    if (mPosX - movepxe*48 < 0 && blockx + 1 < blockmap.size() && blockmap[blockx+1][blocky] != 1) 
+                    {
+                        movepx = blockx+1;
+                        movepy = blocky;
+                        mVelX = datas.speed;
+                        direction = RIGHT;
+                    }
+                    else if (mPosX - movepxe*48 > 0 && blockx - 1 < blockmap.size() && blockmap[blockx-1][blocky] != 1)
+                    {
+                        movepx = blockx-1;
+                        movepy = blocky;
+                        mVelX = -datas.speed;
+                        direction = LEFT;
+                    }
+                    else
+                    {
+                        mVelX = 0;
+                        mVelY = 0;
+                        m1 = false;
+                        motionp = false;
+                    }
+                }
+            }
+        }
+
+        mPosX += mVelX*deltatime/1000;
+        mPosY += mVelY*deltatime/1000;
+
+        if (mVelX != 0 || mVelY != 0) m2 = true;
+        else m2 = false;
+
+        if (fabs(mPosX - movepx*48) <= fabs(datas.speed*deltatime/500)) 
+        {   
+            mPosX = movepx*48;  
+            mVelX = 0;
+        } 
+        if (fabs(mPosY - movepy*48) <= fabs(datas.speed*deltatime/500)) 
+        {
+            mPosY = movepy*48; 
+            mVelY = 0;
+        } 
+        if (mPosX == movepx*48 && mPosY == movepy*48 )
+        {
+            mVelX = 0;
+            mVelY = 0;
+            m2 = false;
+        }
+        if (mPosX == movepxe*48 && mPosY == movepye*48 )
+        {
+            motionp = false;
+            mVelX = 0;
+            mVelY = 0;
+            m1 = false;
+            m2 = false;
+        }
+    }
+}
+
+void Characters::mousepixel( SDL_Event* e )
+{
+    int xm, ym;
+    SDL_GetMouseState( &xm, &ym );
+    if (e->type == SDL_MOUSEBUTTONDOWN)
+    {
+        movepxe = floor((xm + camera.x)/48);
+        movepye = floor((ym + camera.y)/48);
+        m1 = true;
+        motionp = true;
+    }
 }

@@ -20,6 +20,7 @@ enum Scenes
     NEW_GAME = 4,
     LOAD_GAME = 5,
     MAP_T1,
+    MAP_T2,
 };
 
 class Scene
@@ -87,14 +88,14 @@ string fpscustom = "100";
 string ff = "100";
 bool a = false;
 double newgamey = 1;
-bool smooth_camera = true;
+bool smooth_camera = false;
 
 extern bool quit;
 extern bool vsync2;
 
 Scene::Scene()
 {
-    scene = MAP_T1;
+    scene = START_MENU;
     step = 0;
     alpha = 0;
     music_vollume = 64;
@@ -148,8 +149,8 @@ void Scene::handleEvent(SDL_Event& e)
                 if (buttons[0].handleEvent(&e) == MOUSE_DOWN)
                 {
                     step = 0;
-                    //scene = NEW_GAME;
-                    scene = MAP_T1;
+                    scene = NEW_GAME;
+                    //scene = MAP_T1;
                 }
             }
             if (buttons[1].handleEvent(&e) == MOUSE_OUT) buttons[1].mClip.x = 0;
@@ -225,6 +226,18 @@ void Scene::handleEvent(SDL_Event& e)
             fps_show = fpss;
             fps_max = fpm;
             vn = vnm;
+            
+            if (vn)
+            {
+                newgame.free();
+                newgame.loadFromFile( "assets/texture/img/new game vn.png" );
+            }
+            else
+            {
+                newgame.free();
+                newgame.loadFromFile( "assets/texture/img/new game eng.png" );
+            }
+
             if (stoi(ff)<25)
             {
                 ff = "25";
@@ -270,12 +283,29 @@ void Scene::handleEvent(SDL_Event& e)
         }
     }
 
+    else if (scene == NEW_GAME && step != 0)
+    {
+        if (e.type == SDL_KEYDOWN)
+        {
+            step = 0;
+            scene = MAP_T1;
+            newgamey = 1;
+        }
+    }
+
     else if ( scene == MAP_T1 && step != 0 )
     {
-        hero.motion(&e);
+        //hero.motion(&e);
+        hero.motionpixel(&e);
+        hero.mousepixel(&e);
         if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_1)
         {
             scene = MENU;
+            step = 0;
+        }
+        else if (hero.blockevent == 801 && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_2)
+        {
+            scene = MAP_T2;
             step = 0;
         }
     }
@@ -286,7 +316,12 @@ void Scene::logicScene()
     vsync2 = vsync;
     if ( scene == MAP_T1 && step != 0 )
     {
-        hero.move();
+        //hero.move();
+        hero.movepixel();
+        if (hero.blockevent == 901) {}
+        else if (hero.blockevent == 902) {}
+        else if (hero.blockevent == 903) {}
+        else if (hero.blockevent == 904) {}
     }
 }
 
@@ -624,6 +659,34 @@ void Scene::renderScene()
             SDL_Rect cameraRect = hero.camxy();
             mapt1.render(0, 0, nullptr, &cameraRect);
             hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (hero.blockevent == 801)
+            {
+                if (vn)
+                {
+                    string aa = "Nhấn " + to_string(hero.blockevent) + " để mở cửa";
+                    SDL_Color textColor = { 0, 0, 0, 255 };
+                    text.loadFromRenderedText( aa, textColor, gTimes );
+                    SDL_Rect custom;
+                    custom.h = SCREEN_HEIGHT / 15;
+                    custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
+                    custom.x = (SCREEN_WIDTH - custom.w) / 2;
+                    custom.y = (SCREEN_HEIGHT - custom.h) / 2;
+                    text.render(0, 0, &custom);
+                }
+                else
+                {
+                    string aa = "Press " + to_string(hero.blockevent) + " to open the door";
+                    SDL_Color textColor = { 0, 0, 0, 255 };
+                    text.loadFromRenderedText( aa, textColor, gTimes );
+                    SDL_Rect custom;
+                    custom.h = SCREEN_HEIGHT / 15;
+                    custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
+                    custom.x = (SCREEN_WIDTH - custom.w) / 2;
+                    custom.y = (SCREEN_HEIGHT - custom.h) / 2;
+                    text.render(0, 0, &custom);
+                }
+            }
         }
     }
 
@@ -698,7 +761,7 @@ void loadMedia()
     transparent.loadFromFile( "assets/texture/img/transparent.png" );
     transparent2.loadFromFile( "assets/texture/img/transparent 2.png" );
     tick.loadFromFile( "assets/texture/img/tick.png" );
-    newgame.loadFromFile( "assets/texture/img/new game.png" );
+    newgame.loadFromFile( "assets/texture/img/new game vn.png" );
     hero2.loadFromFile( "assets/texture/characters/hero.png" );
     mapt1.loadFromFile( "assets/texture/map/sanh1.png" );
     for( int j = 0; j < 4; ++j )
