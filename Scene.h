@@ -19,8 +19,13 @@ enum Scenes
     SETTING_KEY = 3,
     NEW_GAME = 4,
     LOAD_GAME = 5,
-    MAP_T1,
-    MAP_T2,
+    MAP_T1 = 6,
+    MAP_T2 = 7,
+    MAP_A1 = 8,
+    MAP_A2 = 9,
+    MAP_A3 = 10,
+    MAP_A4 = 11,
+    MAP_GARDEN = 12,
 };
 
 class Scene
@@ -35,15 +40,20 @@ class Scene
         void renderScene();
         bool fps_max;
         bool vsync;
+        bool fadein(Texture* tex); //hiện dần
+        bool fadeout(Texture* tex); //mờ dần
     private:
         Scenes scene;
-        int step;
+        int step, stepf;
         Uint8 alpha;
         vector<Button> buttons;
         int music_vollume;
         int SFX_vollume;
         bool fps_show;
         bool vn;
+        int xsp, ysp;
+        Direction d;
+        bool pixelmotionn;
 };
 
 int SCREEN_WIDTH = 720;
@@ -70,6 +80,13 @@ Texture tick;
 Texture newgame;
 Texture hero2;
 Texture mapt1;
+Texture mapt2;
+Texture mapa1;
+Texture mapa2;
+Texture mapa3;
+Texture mapa4;
+Texture mapg1;
+Texture mapg2;
 Characters hero;
 SDL_Rect menuclips[ 4 ];
 Timer time1;
@@ -95,8 +112,9 @@ extern bool vsync2;
 
 Scene::Scene()
 {
-    scene = START_MENU;
+    scene = MAP_A1;
     step = 0;
+    stepf = 0;
     alpha = 0;
     music_vollume = 64;
     SFX_vollume = 64;
@@ -104,6 +122,10 @@ Scene::Scene()
     fps_show = false;
     fps_max = false;
     vn = true; 
+    xsp = 4;//41;
+    ysp = 28;//43;
+    d = FRONT;
+    pixelmotionn = false;
 }
 
 Scene::~Scene()
@@ -150,7 +172,6 @@ void Scene::handleEvent(SDL_Event& e)
                 {
                     step = 0;
                     scene = NEW_GAME;
-                    //scene = MAP_T1;
                 }
             }
             if (buttons[1].handleEvent(&e) == MOUSE_OUT) buttons[1].mClip.x = 0;
@@ -295,19 +316,88 @@ void Scene::handleEvent(SDL_Event& e)
 
     else if ( scene == MAP_T1 && step != 0 )
     {
-        //hero.motion(&e);
-        hero.motionpixel(&e);
-        hero.mousepixel(&e);
-        if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_1)
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+
+        if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_1)  //test
         {
             scene = MENU;
             step = 0;
         }
+
         else if (hero.blockevent == 801 && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_2)
         {
+            hero.stop();
             scene = MAP_T2;
             step = 0;
+            xsp = 41;
+            ysp = 26;
+            d = FRONT;
         }
+    }
+
+    else if ( scene == MAP_T2 && step != 0 )
+    {
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+    }
+
+    else if ( scene == MAP_A1 && step != 0 )
+    {
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+    }
+
+    else if ( scene == MAP_A2 && step != 0 )
+    {
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+    }
+
+    else if ( scene == MAP_A3 && step != 0 )
+    {
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+    }
+
+    else if ( scene == MAP_A4 && step != 0 )
+    {
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+    }
+
+    else if ( scene == MAP_GARDEN && step != 0 )
+    {
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
     }
 }
 
@@ -316,12 +406,384 @@ void Scene::logicScene()
     vsync2 = vsync;
     if ( scene == MAP_T1 && step != 0 )
     {
-        //hero.move();
-        hero.movepixel();
-        if (hero.blockevent == 901) {}
-        else if (hero.blockevent == 902) {}
-        else if (hero.blockevent == 903) {}
-        else if (hero.blockevent == 904) {}
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_T2;
+            step = 0;
+            xsp = 3;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 902) 
+        {
+            hero.stop();
+            scene = MAP_T2;
+            step = 0;
+            xsp = 78;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 903)
+        {
+            hero.stop();
+            scene = MAP_T2;
+            step = 0;
+            xsp = 29;
+            ysp = 33;
+            d = LEFT;
+        }
+        else if (hero.blockevent == 904)
+        {
+            hero.stop();
+            scene = MAP_T2;
+            step = 0;
+            xsp = 54;
+            ysp = 33;
+            d = RIGHT;
+        }
+    }
+
+    else if ( scene == MAP_T2 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_T1;
+            step = 0;
+            xsp = 5;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 902) 
+        {
+            hero.stop();
+            scene = MAP_T1;
+            step = 0;
+            xsp = 80;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 903)
+        {
+            hero.stop();
+            scene = MAP_T1;
+            step = 0;
+            xsp = 41;
+            ysp = 31;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 904)
+        {
+            hero.stop();
+            scene = MAP_A1;
+            step = 0;
+            xsp = 4;
+            ysp = 28;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 905)
+        {
+            hero.stop();
+            scene = MAP_T1;
+            step = 0;
+            xsp = 35;
+            ysp = 33;
+            d = RIGHT;
+        }
+        else if (hero.blockevent == 906)
+        {
+            hero.stop();
+            scene = MAP_T1;
+            step = 0;
+            xsp = 48;
+            ysp = 33;
+            d = LEFT;
+        }
+    }
+
+    else if ( scene == MAP_A1 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_T2;
+            step = 0;
+            xsp = 41;
+            ysp = 14;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 902) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 19;
+            ysp = 38;
+            d = FRONT;
+        }
+    }
+
+    else if ( scene == MAP_A2 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_A2;
+            step = 0;
+            xsp = 21;
+            ysp = 38;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 902) 
+        {
+            hero.stop();
+            scene = MAP_A2;
+            step = 0;
+            xsp = 38;
+            ysp = 21;
+            d = LEFT;
+        }
+        else if (hero.blockevent == 903) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 4;
+            ysp = 23;
+            d = RIGHT;
+        }
+        else if (hero.blockevent == 904) 
+        {
+            hero.stop();
+            scene = MAP_A2;
+            step = 0;
+            xsp = 4;
+            ysp = 21;
+            d = RIGHT;
+        }
+    }
+
+    else if ( scene == MAP_A3 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_A3;
+            step = 0;
+            xsp = 44;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 902) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 19;
+            ysp = 5;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 903) 
+        {
+            hero.stop();
+            scene = MAP_A1;
+            step = 0;
+            xsp = 4;
+            ysp = 28;
+            d = FRONT;
+        }
+    }
+
+    else if ( scene == MAP_A4 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_A1;
+            step = 0;
+            xsp = 4;
+            ysp = 28;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 902) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 4;
+            ysp = 23;
+            d = RIGHT;
+        }
+        else if (hero.blockevent == 903) 
+        {
+            hero.stop();
+            scene = MAP_A4;
+            step = 0;
+            xsp = 4;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 904) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 34;
+            ysp = 23;
+            d = LEFT;
+        }
+        else if (hero.blockevent == 905) 
+        {
+            hero.stop();
+            scene = MAP_A4;
+            step = 0;
+            xsp = 44;
+            ysp = 38;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 906) 
+        {
+            hero.stop();
+            scene = MAP_A4;
+            step = 0;
+            xsp = 24;
+            ysp = 4;
+            d = BEHIND;
+        }
+    }
+
+    else if ( scene == MAP_GARDEN && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_A2;
+            step = 0;
+            xsp = 38;
+            ysp = 21;
+            d = LEFT;
+        }
+        else if (hero.blockevent == 902)
+        {
+            hero.stop();
+            scene = MAP_A3;
+            step = 0;
+            xsp = 24;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 903)
+        {
+            hero.stop();
+            scene = MAP_A4;
+            step = 0;
+            xsp = 4;
+            ysp = 38;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 904)
+        {
+            hero.stop();
+            scene = MAP_A1;
+            step = 0;
+            xsp = 4;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 911)
+        {
+            hero.stop();
+            scene = MAP_A2;
+            step = 0;
+            xsp = 21;
+            ysp = 38;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 912)
+        {
+            hero.stop();
+            scene = MAP_A3;
+            step = 0;
+            xsp = 24;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 921)
+        {
+            hero.stop();
+            scene = MAP_A3;
+            step = 0;
+            xsp = 24;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 922)
+        {
+            hero.stop();
+            scene = MAP_A4;
+            step = 0;
+            xsp = 24;
+            ysp = 38;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 931)
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 19;
+            ysp = 38;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 932)
+        {
+            hero.stop();
+            scene = MAP_A2;
+            step = 0;
+            xsp = 21;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 941)
+        {
+            hero.stop();
+            scene = MAP_A3;
+            step = 0;
+            xsp = 24;
+            ysp = 4;
+            d = BEHIND;
+        }
+        else if (hero.blockevent == 942)
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 19;
+            ysp = 35;
+            d = FRONT;
+        }
     }
 }
 
@@ -648,10 +1110,17 @@ void Scene::renderScene()
     {
         if (step==0)
         {
-            hero.addtexture(&hero2, 3, 4, 6);
             hero.getmapxy(&mapt1, "sanh1.txt");
-            hero.startpoint(41,43);
-            step = 1;
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapt1.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
         }
         else if (step == 1)
         {
@@ -664,7 +1133,7 @@ void Scene::renderScene()
             {
                 if (vn)
                 {
-                    string aa = "Nhấn " + to_string(hero.blockevent) + " để mở cửa";
+                    string aa = "Nhấn " + to_string(2) + " để mở cửa";
                     SDL_Color textColor = { 0, 0, 0, 255 };
                     text.loadFromRenderedText( aa, textColor, gTimes );
                     SDL_Rect custom;
@@ -676,7 +1145,7 @@ void Scene::renderScene()
                 }
                 else
                 {
-                    string aa = "Press " + to_string(hero.blockevent) + " to open the door";
+                    string aa = "Press " + to_string(2) + " to open the door";
                     SDL_Color textColor = { 0, 0, 0, 255 };
                     text.loadFromRenderedText( aa, textColor, gTimes );
                     SDL_Rect custom;
@@ -687,6 +1156,157 @@ void Scene::renderScene()
                     text.render(0, 0, &custom);
                 }
             }
+        }
+    }
+
+    else if ( scene == MAP_T2 )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&mapt2, "sanh2.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapt2.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapt2.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+        }
+    }
+
+    else if ( scene == MAP_A1 )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&mapa1, "m1.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            //mapa1.render(hero.mapxm, hero.mapym, nullptr, &cameraRect);
+            mapa1.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapa1.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+        }
+    }
+
+    else if ( scene == MAP_A2 )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&mapa2, "m2.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapa2.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapa2.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+        }
+    }
+
+    else if ( scene == MAP_A3 )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&mapa3, "m3.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapa3.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapa3.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+        }
+    }
+
+    else if ( scene == MAP_A4 )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&mapa4, "m4.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapa4.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapa4.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+        }
+    }
+
+    else if ( scene == MAP_GARDEN )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&mapg1, "mgarden.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapg1.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            mapg1.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
         }
     }
 
@@ -715,6 +1335,68 @@ void Scene::renderScene()
     }
 }
 
+bool Scene::fadein(Texture* tex) //hiện dần
+{
+    if (stepf == 0)
+    {
+        alpha = 0;
+        tex->setAlpha( 0 );
+        time1.setstarttime();
+        stepf = 1;
+    }
+    if( stepf == 1 )
+    {
+        if ( time1.gettime() >= 10 )
+        {
+            tex->setAlpha( alpha );
+            alpha += 5;
+            time1.setstarttime();
+        }
+        if (alpha >= 255 )
+        {
+            stepf = 0;
+            alpha = 255;
+            return true;
+        }
+        SDL_Rect custom;
+        custom.w = SCREEN_WIDTH;
+        custom.h = SCREEN_HEIGHT;
+        tex->render( 0, 0, &custom);
+    }
+    return false;
+}
+
+bool Scene::fadeout(Texture* tex) //mờ dần
+{
+    if (stepf == 0)
+    {
+        alpha = 255;
+        tex->setAlpha( 255 );
+        time1.setstarttime();
+        stepf = 1;
+    }
+    if ( stepf == 1 )
+    {
+        if ( time1.gettime() >= 10 )
+        {
+            tex->setAlpha( alpha );
+            alpha -= 5;
+            time1.setstarttime();
+        }
+        else if (alpha <= 0 )
+        {
+            alpha = 0;
+            stepf = 0;
+            return true;
+        }
+        SDL_Rect custom;
+        custom.w = SCREEN_WIDTH;
+        custom.h = SCREEN_HEIGHT;
+        tex->render( 0, 0, &custom);
+    }
+    return false;
+}
+
 void Scene::free()
 {
     logo.free();
@@ -732,6 +1414,13 @@ void Scene::free()
     newgame.free();
     hero2.free();
     mapt1.free();
+    mapt2.free();
+    mapa1.free();
+    mapa2.free();
+    mapa3.free();
+    mapa4.free();
+    mapg1.free();
+    mapg2.free();
     buttons.clear();
     gWindow.free();
     SDL_DestroyRenderer( gRenderer );
@@ -764,6 +1453,13 @@ void loadMedia()
     newgame.loadFromFile( "assets/texture/img/new game vn.png" );
     hero2.loadFromFile( "assets/texture/characters/hero.png" );
     mapt1.loadFromFile( "assets/texture/map/sanh1.png" );
+    mapt2.loadFromFile( "assets/texture/map/sanh2.png" );
+    mapa1.loadFromFile( "assets/texture/map/m1.png" );
+    mapa2.loadFromFile( "assets/texture/map/m2.png" );
+    mapa3.loadFromFile( "assets/texture/map/m3.png" );
+    mapa4.loadFromFile( "assets/texture/map/m4.png" );
+    mapg1.loadFromFile( "assets/texture/map/mgarden.png" );
+    mapg2.loadFromFile( "assets/texture/map/mgarden2.png" );
     for( int j = 0; j < 4; ++j )
     {
         menuclips[ j ].x = 0;
@@ -792,6 +1488,13 @@ void close()
     newgame.free();
     hero2.free();
     mapt1.free();
+    mapt2.free();
+    mapa1.free();
+    mapa2.free();
+    mapa3.free();
+    mapa4.free();
+    mapg1.free();
+    mapg2.free();
 
     gWindow.free();
 

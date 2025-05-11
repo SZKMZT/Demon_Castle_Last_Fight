@@ -52,11 +52,14 @@ class Characters
         void animated(int mx, int my);
         void getmapxy(Texture* mapp, string mappp);
         void cameraxy();
+        void stop();
         SDL_Rect camxy();
         int mx_camx, my_camy;
         vector<vector<int>> blockmap;
         void startpoint(int blockxp, int blockyp);
         int blockevent;
+        Direction direction;
+        int mapxm, mapym;
     private:
         datachar datas;
         Texture* mTexture;
@@ -67,7 +70,6 @@ class Characters
         vector<SDL_Rect> clipss;
         int framerate;
         int cframe;
-        Direction direction;
         SDL_Rect camera;
         double camx, camy;
         double camvx, camvy;
@@ -122,6 +124,8 @@ Characters::Characters(Texture* texture)
     b1 = false;
     m1 = false;
     m2 = false;
+    mapxm = 0;
+    mapym = 0;
 }
 
 void Characters::addtexture(Texture* texture, int w, int h, int f)
@@ -419,6 +423,10 @@ void Characters::cameraxy()
 
     camera.w = SCREEN_WIDTH;
     camera.h = SCREEN_HEIGHT;
+
+    if( SCREEN_WIDTH > mapx ) camera.w = mapx;
+    if( SCREEN_HEIGHT > mapy ) camera.h = mapy;
+
     if (smooth_camera)
     {
         double distance = sqrt( pow( camx - ( mPosX + mWidth / 2 ), 2 ) + pow( camy - ( mPosY + mHeight / 2 ), 2 ) );
@@ -759,6 +767,13 @@ void Characters::movepixel()
             m2 = false;
         }
     }
+
+    if (blockmap[floor(( mPosX + mWidth/2 ) / 48 )][ floor(( mPosY + mHeight/2 ) / 48 )] != 0) 
+    {
+        if ( checkvar((floor(( mPosX + mWidth/2 ) / 48 ))*48, ((floor(( mPosX + mWidth/2 ) / 48 ))+1)*48, (floor(( mPosY + mHeight/2 ) / 48 ))*48, ((floor(( mPosY + mHeight/2 ) / 48 ))+1)*48 ) == BETWEENC ) 
+        blockevent = blockmap[floor(( mPosX + mWidth/2 ) / 48 )][floor(( mPosY + mHeight/2 ) / 48 )];
+    }
+    else blockevent = 0;
 }
 
 void Characters::mousepixel( SDL_Event* e )
@@ -772,4 +787,13 @@ void Characters::mousepixel( SDL_Event* e )
         m1 = true;
         motionp = true;
     }
+}
+
+void Characters::stop()
+{
+    mVelX = 0;
+    mVelY = 0;
+    motionp = false;
+    m1 = false;
+    m2 = false;
 }
