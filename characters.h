@@ -64,11 +64,11 @@ class Characters
         SDL_Rect camera;
         int mWidth;
 		int mHeight;
+        double mPosX, mPosY;
     private:
         datachar datas;
         Texture* mTexture;
         double mVelX, mVelY;
-        double mPosX, mPosY;
         vector<SDL_Rect> clipss;
         int framerate;
         int cframe; //hoạt ảnh nhân vật, dùng để chuyển cảnh di chuyển ô. cframe kiểu khung hình hiện tại mà nhân vật đang sở hữu
@@ -91,7 +91,7 @@ class Characters
 
 Characters::Characters(Texture* texture)
 {
-    mTexture = nullptr;
+    mTexture = texture;
     datas.health = 100;
     datas.power = 5;
     datas.mana = 100;

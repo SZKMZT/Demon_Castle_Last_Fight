@@ -7,8 +7,14 @@
 #include "Timer.h"
 #include "Button.h"
 #include "characters.h"
+#include "rangedM.h"
 #include <iostream>
 #include <vector>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <cmath>
+#include <SDL_mixer.h>
 using namespace std;
 
 enum Scenes
@@ -46,8 +52,9 @@ class Scene
         bool vsync;
         bool fadein(Texture* tex); //hiện dần
         bool fadeout(Texture* tex); //mờ dần
-    private:
+        void shoot(Texture* texture1, Texture* texture2, Texture* texture3, int x, int y, int v, double angle, vector<vector<int>> bm);
         Scenes scene;
+    private:
         int step, stepf;
         Uint8 alpha;
         vector<Button> buttons;
@@ -58,6 +65,8 @@ class Scene
         int xsp, ysp;
         Direction d;
         bool pixelmotionn;
+        vector<Bullet> bullets;
+        Bullet b3;
 };
 
 int SCREEN_WIDTH = 720;
@@ -95,6 +104,12 @@ Texture challenge1;
 Texture dark;
 Texture dimension2;
 Texture gate2;
+Texture fire0;
+Texture fire1;
+Texture fire2;
+Texture crystal;
+Texture skvn;
+Texture ske;
 Characters hero;
 Characters dimension;
 Characters gate;
@@ -120,6 +135,13 @@ bool smooth_camera = false;
 extern bool quit;
 extern bool vsync2;
 
+void Scene::shoot(Texture* texture1, Texture* texture2, Texture* texture3, int x, int y, int v, double angle, vector<vector<int>> bm) 
+{
+    Bullet newBullet;
+    newBullet.addbullet(texture1, texture2, texture3, x, y, v, angle, bm);
+    bullets.push_back(newBullet);
+}
+
 Scene::Scene()
 {
     scene = START_MENU;
@@ -139,8 +161,11 @@ Scene::Scene()
     //xsp = 4; //map1
     //ysp = 28;
 
-    xsp = 64; //maze-cha1
-    ysp = 160;
+    //xsp = 64; //maze-cha1
+    //ysp = 160;
+
+    xsp = 58; //maze-cha1.2
+    ysp = 10;
 
     //xsp = 19; //garden
     //ysp = 35;
@@ -211,8 +236,19 @@ void Scene::handleEvent(SDL_Event& e)
                 buttons[2].mClip.x = buttons[2].mClip.w;
                 if (buttons[2].handleEvent(&e) == MOUSE_DOWN)
                 {
-                    //step = 0;
-                    //scene = LOAD_GAME;
+                    step = 0;
+                    int sceneValue;
+                    int di;
+                    ifstream file("save/save.txt");
+                    if (file >> sceneValue) 
+                    {
+                        file >> hero.mPosX >> hero.mPosY >> di;
+                        xsp = floor((hero.mPosX+48)/48);
+                        ysp = floor((hero.mPosY+48)/48);
+                        d = static_cast<Direction>(di);
+                        scene = static_cast<Scenes>(sceneValue);
+                    }
+                    file.close();
                 }
             }
             if (buttons[3].handleEvent(&e) == MOUSE_OUT) buttons[3].mClip.x = 0;
@@ -237,10 +273,26 @@ void Scene::handleEvent(SDL_Event& e)
             step = 0;
             scene = MENU;
         }
-        else if(buttons[2].handleEvent(&e) == MOUSE_DOWN ) msv -= 8; 
-        else if(buttons[3].handleEvent(&e) == MOUSE_DOWN ) msv += 8;
-        else if(buttons[4].handleEvent(&e) == MOUSE_DOWN ) sfx -= 8;
-        else if(buttons[5].handleEvent(&e) == MOUSE_DOWN ) sfx += 8;
+        else if(buttons[2].handleEvent(&e) == MOUSE_DOWN ) 
+        {
+            msv -= 8;
+            if(msv<0) msv = 0;
+        } 
+        else if(buttons[3].handleEvent(&e) == MOUSE_DOWN )
+        {
+            msv += 8;
+            if(msv>128) msv = 128;
+        } 
+        else if(buttons[4].handleEvent(&e) == MOUSE_DOWN )
+        {
+            sfx -= 8;
+            if(sfx < 0) sfx=0;
+        }
+        else if(buttons[5].handleEvent(&e) == MOUSE_DOWN )
+        {
+            sfx += 8;
+            if(sfx > 128) sfx=128;
+        }
         else if(buttons[6].handleEvent(&e) == MOUSE_DOWN ) 
         {
             vs = !vs;
@@ -254,8 +306,8 @@ void Scene::handleEvent(SDL_Event& e)
         }
         else if(buttons[9].handleEvent(&e) == MOUSE_DOWN )
         {
-            //step = 0;
-            //scene = SETTING_KEY;
+            step = 0;
+            scene = SETTING_KEY;
         } 
         else if(buttons[11].handleEvent(&e) == MOUSE_DOWN ) vnm = !vnm;
         else if(buttons[12].handleEvent(&e) == MOUSE_DOWN ) vnm = !vnm;
@@ -268,6 +320,7 @@ void Scene::handleEvent(SDL_Event& e)
             fps_show = fpss;
             fps_max = fpm;
             vn = vnm;
+            Mix_VolumeMusic(music_vollume);
             
             if (vn)
             {
@@ -325,6 +378,15 @@ void Scene::handleEvent(SDL_Event& e)
         }
     }
 
+    else if ( scene == SETTING_KEY && step != 0 )
+    {
+        if(buttons[0].handleEvent(&e) == MOUSE_DOWN ) 
+        {
+            step = 0;
+            scene = MENU;
+        }
+    }
+
     else if (scene == NEW_GAME && step != 0)
     {
         if (e.type == SDL_KEYDOWN)
@@ -344,13 +406,7 @@ void Scene::handleEvent(SDL_Event& e)
         }
         else hero.motion(&e);
 
-        if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_1)  //test
-        {
-            scene = MENU;
-            step = 0;
-        }
-
-        else if (hero.blockevent == 801 && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_2)
+        if (hero.blockevent == 801 && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_e)
         {
             hero.stop();
             scene = MAP_T2;
@@ -430,6 +486,20 @@ void Scene::handleEvent(SDL_Event& e)
         }
         else hero.motion(&e);
     }   
+
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q && step != 0) 
+    {
+        shoot(&fire0, &fire1, &fire2, hero.mPosX, hero.mPosY, 48*10, -90, hero.blockmap);
+    }
+
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
+    {
+        ofstream file("save/save.txt");
+        file << scene << " " << hero.mPosX << " " << hero.mPosY << " " << hero.direction ;
+        file.close();
+        step = 0;
+        scene = MENU;
+    }
 }
 
 void Scene::logicScene()
@@ -827,28 +897,28 @@ void Scene::logicScene()
         else if (hero.blockevent == 952)
         {
             hero.stop();
-            scene = CHALLENGE_2;
+            scene = CHALLENGE_1;
             step = 0;
-            xsp = 0;
-            ysp = 0;
+            xsp = 64;
+            ysp = 160;
             d = FRONT;
         }
         else if (hero.blockevent == 953)
         {
             hero.stop();
-            scene = CHALLENGE_3;
+            scene = CHALLENGE_1;
             step = 0;
             xsp = 64;
-            ysp = 161;
+            ysp = 160;
             d = FRONT;
         }
         else if (hero.blockevent == 954)
         {
             hero.stop();
-            scene = CHALLENGE_4;
+            scene = CHALLENGE_1;
             step = 0;
             xsp = 64;
-            ysp = 161;
+            ysp = 160;
             d = FRONT;
         }
     }
@@ -863,9 +933,9 @@ void Scene::logicScene()
             hero.stop();
             scene = MAP_GARDEN;
             step = 0;
-            xsp = 8;
-            ysp = 13;
-            d = BEHIND;
+            xsp = 19;
+            ysp = 35;
+            d = FRONT;
         }
     }
 }
@@ -1147,6 +1217,103 @@ void Scene::renderScene()
                 custom.y = setting.my + setting.mh * 26 / 35;
                 text.render(0, 0, &custom);
             }
+            string a = to_string(msv);
+            SDL_Color textColor = { 255, 255, 255, 255 };
+                text.loadFromRenderedText( a, textColor, gArial );
+                custom.h = setting.mh * 0.04;
+                custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
+                custom.x = setting.mx + setting.mw * 39 / 70 + (setting.mw * 9 / 35 - custom.w) / 2;
+                custom.y = setting.my + setting.mh * 7 / 30;
+                text.render(0, 0, &custom);
+
+                a = to_string(sfx);
+                text.loadFromRenderedText( a, textColor, gArial );
+                custom.h = setting.mh * 0.04;
+                custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
+                custom.x = setting.mx + setting.mw * 39 / 70 + (setting.mw * 9 / 35 - custom.w) / 2;
+                custom.y = setting.my + setting.mh * 3 / 10;
+                text.render(0, 0, &custom);
+        }
+    }
+
+    else if (scene == SETTING_KEY)
+    {
+        if (step == 0)
+        {
+            background.render( 0, 0, nullptr, nullptr, true );
+            black.setAlpha(175);
+            SDL_Rect custom;
+            custom.h = background.mh;
+            custom.w = background.mw;
+            custom.x = background.mx;
+            custom.y = background.my;
+            black.render( 0, 0, &custom );
+
+            custom.h = SCREEN_HEIGHT * 0.85;
+            custom.w = custom.h;
+            custom.x = (SCREEN_WIDTH - custom.w) / 2;
+            custom.y = (SCREEN_HEIGHT - custom.h) / 2;
+            setting2.render( 0, 0, &custom );
+
+            buttons.clear();
+            custom.w = setting.mw * 0.57;
+            custom.h = setting.mh * 6 / 23;
+            custom.x = setting.mx + setting.mw * 3 / 10;
+            custom.y = setting.my + setting.mh * 7 / 10;
+            buttons.emplace_back(&black, custom); //back button 0
+
+            if (vn)
+            {
+                custom.w = setting2.mw * 3/4;
+                custom.h = custom.w * skvn.mh / skvn.mw;
+                custom.x = (setting2.mw - custom.w) / 2 + setting2.mx;
+                custom.y = setting2.my * 4;
+                skvn.render( 0, 0, &custom );
+            }
+            else
+            {
+                custom.w = setting2.mw * 3/4;
+                custom.h = custom.w * skvn.mh / skvn.mw;
+                custom.x = (setting2.mw - custom.w) / 2 + setting2.mx;
+                custom.y = setting2.my * 4;
+                ske.render( 0, 0, &custom );
+            }
+
+            step = 1;
+        }
+        else if (step == 1)
+        {
+            background.render( 0, 0, nullptr, nullptr, true );
+            black.setAlpha(175);
+            SDL_Rect custom;
+            custom.h = background.mh;
+            custom.w = background.mw;
+            custom.x = background.mx;
+            custom.y = background.my;
+            black.render( 0, 0, &custom );
+
+            custom.h = SCREEN_HEIGHT * 0.85;
+            custom.w = custom.h;
+            custom.x = (SCREEN_WIDTH - custom.w) / 2;
+            custom.y = (SCREEN_HEIGHT - custom.h) / 2;
+            setting2.render( 0, 0, &custom );
+
+            if (vn)
+            {
+                custom.w = setting2.mw * 3/4;
+                custom.h = custom.w * skvn.mh / skvn.mw;
+                custom.x = (setting2.mw - custom.w) / 2 + setting2.mx;
+                custom.y = setting2.my * 4;
+                skvn.render( 0, 0, &custom );
+            }
+            else
+            {
+                custom.w = setting2.mw * 3/4;
+                custom.h = custom.w * skvn.mh / skvn.mw;
+                custom.x = (setting2.mw - custom.w) / 2 + setting2.mx;
+                custom.y = setting2.my * 4;
+                ske.render( 0, 0, &custom );
+            }
         }
     }
     
@@ -1219,7 +1386,7 @@ void Scene::renderScene()
             {
                 if (vn)
                 {
-                    string aa = "Nhấn " + to_string(2) + " để mở cửa";
+                    string aa = "Nhấn E để mở cửa";
                     SDL_Color textColor = { 0, 0, 0, 255 };
                     text.loadFromRenderedText( aa, textColor, gTimes );
                     SDL_Rect custom;
@@ -1231,7 +1398,7 @@ void Scene::renderScene()
                 }
                 else
                 {
-                    string aa = "Press " + to_string(2) + " to open the door";
+                    string aa = "Press E to open the door";
                     SDL_Color textColor = { 0, 0, 0, 255 };
                     text.loadFromRenderedText( aa, textColor, gTimes );
                     SDL_Rect custom;
@@ -1452,6 +1619,7 @@ void Scene::renderScene()
             hero.cameraxy();
             SDL_Rect cameraRect = hero.camxy();
             challenge1.render(0, 0, nullptr, &cameraRect);
+            crystal.render(57*48 - hero.camera.x, 4*48 - hero.camera.y);
             hero.animated(hero.mx_camx, hero.my_camy);
             SDL_Rect custom;
             custom.w = dark.mw;
@@ -1462,6 +1630,13 @@ void Scene::renderScene()
         }
     }
 
+    if (step != 0)
+    {
+        for (auto& bullet : bullets) bullet.active(hero.mPosX, hero.mPosY, hero.camera.x, hero.camera.y);
+        bullets.erase (remove_if(bullets.begin(), bullets.end(), [](Bullet& b) { return !b.start; }), bullets.end());
+    }
+    else bullets.clear();
+    
     if (fps_show)
     {
         if ( fpscc.gettime() >= 1000 )
@@ -1577,6 +1752,12 @@ void Scene::free()
     dark.free();
     dimension2.free();
     gate2.free();
+    fire0.free();
+    fire1.free();
+    fire2.free();
+    crystal.free();
+    skvn.free();
+    ske.free();
     buttons.clear();
     gWindow.free();
     SDL_DestroyRenderer( gRenderer );
@@ -1620,6 +1801,13 @@ void loadMedia()
     dark.loadFromFile( "assets/texture/img/transparent3.png" );
     dimension2.loadFromFile( "assets/texture/effect/dimension2.png" );
     gate2.loadFromFile( "assets/texture/map/gate.png" );
+    fire0.loadFromFile( "assets/texture/effect/fire0.png" );
+    fire1.loadFromFile( "assets/texture/effect/fire.png" );
+    fire2.loadFromFile( "assets/texture/effect/fire1.png" );
+    crystal.loadFromFile( "assets/texture/map/crystal.png" );
+    skvn.loadFromFile( "assets/texture/img/k1.png" );
+    ske.loadFromFile( "assets/texture/img/k2.png" );
+
     for( int j = 0; j < 4; ++j )
     {
         menuclips[ j ].x = 0;
@@ -1659,6 +1847,13 @@ void close()
     dark.free();
     dimension2.free();
     gate2.free();
+    fire0.free();
+    fire1.free();
+    fire2.free();
+    crystal.free();
+    skvn.free();
+    ske.free();
+
 
     gWindow.free();
 

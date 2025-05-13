@@ -3,6 +3,7 @@
 #include <SDL_ttf.h>
 #include <string>
 #include "Scene.h"
+#include <SDL_mixer.h>
 using namespace std;
 
 Scene scene;
@@ -11,14 +12,24 @@ bool quit = false;
 bool vsync2 = true;
 extern string fpscustom;
 Uint32 t;
+int scene2;
 
 int main(int argc, char* argv[])
 {
     scene.init();
     SDL_Event e;
 
+
+    SDL_Init(SDL_INIT_AUDIO);
+    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+    Mix_Music* music = Mix_LoadMUS("assets/sound/music.mp3");
+    Mix_VolumeMusic(64);
+
     while( !quit )
     {
+        if ( static_cast<int>(scene.scene) != 0) 
+        if (!Mix_PlayingMusic()) 
+        Mix_PlayMusic(music, -1);
         if (!scene.fps_max && !scene.vsync) t = SDL_GetTicks();
         while( SDL_PollEvent( &e ) != 0 )
         {
@@ -29,7 +40,7 @@ int main(int argc, char* argv[])
             scene.handleEvent(e);
         }
 
-        scene.logicScene();
+       scene.logicScene();
 
         SDL_SetRenderDrawColor( gRenderer, 0, 0, 0, 0xFF );
         SDL_RenderClear( gRenderer );

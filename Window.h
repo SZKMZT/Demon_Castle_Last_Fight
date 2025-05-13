@@ -3,6 +3,7 @@
 #include <SDL_ttf.h>
 #include <iostream>
 #include <string>
+#include <SDL_mixer.h>
 using namespace std;
 
 extern int SCREEN_WIDTH;
@@ -43,6 +44,7 @@ void Window::init()
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
 	TTF_Init();
+	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 1, 2048);
     SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" );
 	mWindow = SDL_CreateWindow( "Demon Castle: Last Fight", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
 	mWidth = SCREEN_WIDTH;
