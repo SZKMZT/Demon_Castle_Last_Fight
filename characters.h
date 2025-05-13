@@ -50,6 +50,7 @@ class Characters
         void movepixel();
         Checkvar checkvar(int x1, int x2, int y1, int y2);
         void animated(int mx, int my);
+        void animatedeffect(int mx, int my, int sf, int ef, int scale = 1);
         void getmapxy(Texture* mapp, string mappp);
         void cameraxy();
         void stop();
@@ -60,17 +61,17 @@ class Characters
         int blockevent;
         Direction direction;
         int mapxm, mapym;
+        SDL_Rect camera;
+        int mWidth;
+		int mHeight;
     private:
         datachar datas;
         Texture* mTexture;
         double mVelX, mVelY;
         double mPosX, mPosY;
-        int mWidth;
-		int mHeight;
         vector<SDL_Rect> clipss;
         int framerate;
-        int cframe;
-        SDL_Rect camera;
+        int cframe; //hoạt ảnh nhân vật, dùng để chuyển cảnh di chuyển ô. cframe kiểu khung hình hiện tại mà nhân vật đang sở hữu
         double camx, camy;
         double camvx, camvy;
         int mapx, mapy;
@@ -79,9 +80,13 @@ class Characters
         Uint32 lasttime2;
         double deltatime;
         bool motionp;
-        int movepx, movepy;
-        int movepxe, movepye;
+        int movepx, movepy; //đích đến kiểu di chuyển pixel (từng ô)
+        int movepxe, movepye; //đích đến kiểu di chuyển pixel (nhiều ô), tạo nhiều mốc di chuyển bằng movepx, movepy
         bool b1, m1, m2;
+        //motionhp: khi di chuyển kiểu pixel, ngay khi di chuyển, thay đổi mVelX, mVelY thì khóa chức năng để nhân vật đi tới điểm tới rồi mới trả lại quyền, tránh tốc độ bị nhân lên quá nhiều hay ảnh hưởng tới quá trình tự động di chuyển
+        //m1: khi mdi chuyển kiểu pixel, sử dụng chuột để định hướng nhân vật tới 1 điểm mà cần di chuyển nhiều ô, m1 sẽ khóa chức năng đi từng ô và kích hoạt bằng phím để quá trình tự động hóa. Nhân vật sẽ đi  từng ô một, 
+        //Và m2 sẽ giúp chia nhỏ các bước di chuyển. Mỗi khi di chuyển từng ô xong thì m2 sẽ mở ra giúp tự động hóa tìm đường tiếp theo, chọn ra hướng di chuyển, thay đổi mVelX, mVelY và khóa lại.
+        //b1: khi nhân vật di chuyển, sẽ có hoạt ảnh di chuyển nhưng vấn đề xảy ra, khi dừng lại và di chuyển (di chuyển kiểu pixel rất dễ nhận ra), nhân vật bị giật giật, lỗi là do hoạt ảnh chưa tiếp nối nhau mà bị đứt quãng. Vậy nên b1 để giúp nhân vật chuyển động hết hoạt ảnh tới hoạt ảnh dừng thì thôi.
 };
 
 Characters::Characters(Texture* texture)
@@ -796,4 +801,21 @@ void Characters::stop()
     motionp = false;
     m1 = false;
     m2 = false;
+}
+
+void Characters::animatedeffect(int mx, int my, int sf, int ef, int scale)
+{
+    if (SDL_GetTicks() - lasttime > 1000/framerate) {
+        cframe = (cframe + 1) % (ef - sf  + 1);
+        lasttime = SDL_GetTicks();
+    }
+    if (mTexture != nullptr)
+    {
+        SDL_Rect custom;
+        custom.w = mWidth * scale;
+        custom.h = mHeight * scale;
+        custom.x = mx;
+        custom.y = my;
+        mTexture->render(mx, my, &custom, &clipss[cframe+sf-1]);
+    }
 }

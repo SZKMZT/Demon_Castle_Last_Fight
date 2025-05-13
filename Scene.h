@@ -26,6 +26,10 @@ enum Scenes
     MAP_A3 = 10,
     MAP_A4 = 11,
     MAP_GARDEN = 12,
+    CHALLENGE_1 = 13,
+    CHALLENGE_2 = 14,
+    CHALLENGE_3 = 15,
+    CHALLENGE_4 = 16,
 };
 
 class Scene
@@ -87,7 +91,13 @@ Texture mapa3;
 Texture mapa4;
 Texture mapg1;
 Texture mapg2;
+Texture challenge1;
+Texture dark;
+Texture dimension2;
+Texture gate2;
 Characters hero;
+Characters dimension;
+Characters gate;
 SDL_Rect menuclips[ 4 ];
 Timer time1;
 Timer fpscc;
@@ -112,7 +122,7 @@ extern bool vsync2;
 
 Scene::Scene()
 {
-    scene = MAP_A1;
+    scene = START_MENU;
     step = 0;
     stepf = 0;
     alpha = 0;
@@ -122,10 +132,21 @@ Scene::Scene()
     fps_show = false;
     fps_max = false;
     vn = true; 
-    xsp = 4;//41;
-    ysp = 28;//43;
+
+    //xsp = 41; //sảnh 1?
+    //ysp = 43;
+
+    //xsp = 4; //map1
+    //ysp = 28;
+
+    xsp = 64; //maze-cha1
+    ysp = 160;
+
+    //xsp = 19; //garden
+    //ysp = 35;
+
     d = FRONT;
-    pixelmotionn = false;
+    pixelmotionn = true;
 }
 
 Scene::~Scene()
@@ -399,6 +420,16 @@ void Scene::handleEvent(SDL_Event& e)
         }
         else hero.motion(&e);
     }
+
+    else if ( scene == CHALLENGE_1 && step != 0 )
+    {
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+    }   
 }
 
 void Scene::logicScene()
@@ -784,6 +815,58 @@ void Scene::logicScene()
             ysp = 35;
             d = FRONT;
         }
+        else if (hero.blockevent == 951)
+        {
+            hero.stop();
+            scene = CHALLENGE_1;
+            step = 0;
+            xsp = 64;
+            ysp = 160;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 952)
+        {
+            hero.stop();
+            scene = CHALLENGE_2;
+            step = 0;
+            xsp = 0;
+            ysp = 0;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 953)
+        {
+            hero.stop();
+            scene = CHALLENGE_3;
+            step = 0;
+            xsp = 64;
+            ysp = 161;
+            d = FRONT;
+        }
+        else if (hero.blockevent == 954)
+        {
+            hero.stop();
+            scene = CHALLENGE_4;
+            step = 0;
+            xsp = 64;
+            ysp = 161;
+            d = FRONT;
+        }
+    }
+
+    else if ( scene == CHALLENGE_1 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 8;
+            ysp = 13;
+            d = BEHIND;
+        }
     }
 }
 
@@ -1074,6 +1157,9 @@ void Scene::renderScene()
             newgamey = 1;
             time1.setstarttime();
             step = 1;
+            xsp = 41;
+            ysp = 43;
+            d = FRONT;
         }
         else if (step == 1)
         {
@@ -1195,7 +1281,6 @@ void Scene::renderScene()
 
             hero.cameraxy();
             SDL_Rect cameraRect = hero.camxy();
-            //mapa1.render(hero.mapxm, hero.mapym, nullptr, &cameraRect);
             mapa1.render(0, 0, nullptr, &cameraRect);
             hero.animated(hero.mx_camx, hero.my_camy);
 
@@ -1291,12 +1376,27 @@ void Scene::renderScene()
         {
             hero.getmapxy(&mapg1, "mgarden.txt");
             hero.addtexture(&hero2, 3, 4, 6);
+            dimension.addtexture(&dimension2, 8, 8, 4);
+            gate.addtexture(&gate2, 4, 1, 5);
             hero.startpoint(xsp,ysp);
             hero.direction = d;
 
             hero.cameraxy();
             SDL_Rect cameraRect = hero.camxy();
             mapg1.render(0, 0, nullptr, &cameraRect);
+            dimension.animatedeffect(4*48-48 - hero.camera.x, 17*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(4*48-48 - hero.camera.x, 28*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(13*48-48 - hero.camera.x, 5*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(24*48-48 - hero.camera.x, 5*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(33*48-48 - hero.camera.x, 17*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(33*48-48 - hero.camera.x, 28*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(13*48-48 - hero.camera.x, 37*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(24*48-48 - hero.camera.x, 37*48-48 - hero.camera.y, 1, 4, 2);
+            gate.animatedeffect(18*48-48 - hero.camera.x, 8*48-48 - hero.camera.y, 1, 1);
+            dimension.animatedeffect(8*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 33, 36);
+            dimension.animatedeffect(30*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 41, 44);
+            dimension.animatedeffect(8*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 49, 52);
+            dimension.animatedeffect(30*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 57, 60);
             hero.animated(hero.mx_camx, hero.my_camy);
 
             if (fadeout(&black)) step = 1;
@@ -1306,7 +1406,59 @@ void Scene::renderScene()
             hero.cameraxy();
             SDL_Rect cameraRect = hero.camxy();
             mapg1.render(0, 0, nullptr, &cameraRect);
+            dimension.animatedeffect(4*48-48 - hero.camera.x, 17*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(4*48-48 - hero.camera.x, 28*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(13*48-48 - hero.camera.x, 5*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(24*48-48 - hero.camera.x, 5*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(33*48-48 - hero.camera.x, 17*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(33*48-48 - hero.camera.x, 28*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(13*48-48 - hero.camera.x, 37*48-48 - hero.camera.y, 1, 4, 2);
+            dimension.animatedeffect(24*48-48 - hero.camera.x, 37*48-48 - hero.camera.y, 1, 4, 2);
+            gate.animatedeffect(18*48-48 - hero.camera.x, 8*48-48 - hero.camera.y, 1, 1);
+            dimension.animatedeffect(8*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 33, 36);
+            dimension.animatedeffect(30*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 41, 44);
+            dimension.animatedeffect(8*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 49, 52);
+            dimension.animatedeffect(30*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 57, 60);
             hero.animated(hero.mx_camx, hero.my_camy);
+        }
+    }
+
+    else if ( scene == CHALLENGE_1 )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&challenge1, "maze.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            challenge1.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+            dark.mw = hero.mWidth*80;
+            dark.mh = hero.mHeight*80;
+            SDL_Rect custom;
+            custom.w = dark.mw;
+            custom.h = dark.mh;
+            custom.x = hero.mx_camx - dark.mw/2 + hero.mWidth/2;
+            custom.y = hero.my_camy - dark.mh/2 + hero.mHeight/2;
+            dark.render( 0, 0, &custom);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            challenge1.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+            SDL_Rect custom;
+            custom.w = dark.mw;
+            custom.h = dark.mh;
+            custom.x = hero.mx_camx - dark.mw/2 + hero.mWidth/2;
+            custom.y = hero.my_camy - dark.mh/2 + hero.mHeight/2;
+            dark.render( 0, 0, &custom);
         }
     }
 
@@ -1421,6 +1573,10 @@ void Scene::free()
     mapa4.free();
     mapg1.free();
     mapg2.free();
+    challenge1.free();
+    dark.free();
+    dimension2.free();
+    gate2.free();
     buttons.clear();
     gWindow.free();
     SDL_DestroyRenderer( gRenderer );
@@ -1460,6 +1616,10 @@ void loadMedia()
     mapa4.loadFromFile( "assets/texture/map/m4.png" );
     mapg1.loadFromFile( "assets/texture/map/mgarden.png" );
     mapg2.loadFromFile( "assets/texture/map/mgarden2.png" );
+    challenge1.loadFromFile( "assets/texture/map/maploz.png" );
+    dark.loadFromFile( "assets/texture/img/transparent3.png" );
+    dimension2.loadFromFile( "assets/texture/effect/dimension2.png" );
+    gate2.loadFromFile( "assets/texture/map/gate.png" );
     for( int j = 0; j < 4; ++j )
     {
         menuclips[ j ].x = 0;
@@ -1495,6 +1655,10 @@ void close()
     mapa4.free();
     mapg1.free();
     mapg2.free();
+    challenge1.free();
+    dark.free();
+    dimension2.free();
+    gate2.free();
 
     gWindow.free();
 
