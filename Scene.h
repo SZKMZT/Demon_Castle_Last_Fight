@@ -492,6 +492,23 @@ void Scene::handleEvent(SDL_Event& e)
         shoot(&fire0, &fire1, &fire2, hero.mPosX, hero.mPosY, 48*10, -90, hero.blockmap);
     }
 
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_m && step != 0) 
+    {
+        if(pixelmotionn)
+        {
+            pixelmotionn = !pixelmotionn;
+            smooth_camera = true;
+        }
+        else
+        {
+            pixelmotionn = !pixelmotionn;
+            smooth_camera = false;
+            hero.mPosX = floor(hero.mPosX/48)*48;
+            hero.mPosY = floor(hero.mPosY/48)*48;
+        }
+
+    }
+
     if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
     {
         ofstream file("save/save.txt");
