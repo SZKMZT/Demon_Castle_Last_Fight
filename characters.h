@@ -65,10 +65,10 @@ class Characters
         int mWidth;
 		int mHeight;
         double mPosX, mPosY;
+        double mVelX, mVelY;
     private:
         datachar datas;
         Texture* mTexture;
-        double mVelX, mVelY;
         vector<SDL_Rect> clipss;
         int framerate;
         int cframe; //hoạt ảnh nhân vật, dùng để chuyển cảnh di chuyển ô. cframe kiểu khung hình hiện tại mà nhân vật đang sở hữu

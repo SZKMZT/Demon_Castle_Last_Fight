@@ -19,11 +19,9 @@ int main(int argc, char* argv[])
     scene.init();
     SDL_Event e;
 
-
-    SDL_Init(SDL_INIT_AUDIO);
-    Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
     Mix_Music* music = Mix_LoadMUS("assets/sound/music.mp3");
     Mix_VolumeMusic(64);
+    Mix_Volume(-1, 32);
 
     while( !quit )
     {

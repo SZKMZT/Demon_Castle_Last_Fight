@@ -117,6 +117,8 @@ SDL_Rect menuclips[ 4 ];
 Timer time1;
 Timer fpscc;
 Window gWindow;
+Mix_Chunk* firesfx;
+Mix_Chunk* fireexplosionsfx;
 
 int msv;
 int sfx;
@@ -140,6 +142,7 @@ void Scene::shoot(Texture* texture1, Texture* texture2, Texture* texture3, int x
     Bullet newBullet;
     newBullet.addbullet(texture1, texture2, texture3, x, y, v, angle, bm);
     bullets.push_back(newBullet);
+    Mix_PlayChannel(-1, firesfx, 0);
 }
 
 Scene::Scene()
@@ -149,7 +152,7 @@ Scene::Scene()
     stepf = 0;
     alpha = 0;
     music_vollume = 64;
-    SFX_vollume = 64;
+    SFX_vollume = 32;
     vsync = true;
     fps_show = false;
     fps_max = false;
@@ -321,6 +324,7 @@ void Scene::handleEvent(SDL_Event& e)
             fps_max = fpm;
             vn = vnm;
             Mix_VolumeMusic(music_vollume);
+            Mix_Volume(-1, SFX_vollume);
             
             if (vn)
             {
@@ -496,11 +500,15 @@ void Scene::handleEvent(SDL_Event& e)
     {
         if(pixelmotionn)
         {
+            hero.mVelX = 0;
+            hero.mVelY = 0;
             pixelmotionn = !pixelmotionn;
             smooth_camera = true;
         }
         else
         {
+            hero.mVelX = 0;
+            hero.mVelY = 0;
             pixelmotionn = !pixelmotionn;
             smooth_camera = false;
             hero.mPosX = floor(hero.mPosX/48)*48;
@@ -511,8 +519,10 @@ void Scene::handleEvent(SDL_Event& e)
 
     if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
     {
+        hero.mVelX = 0;
+        hero.mVelY = 0;
         ofstream file("save/save.txt");
-        file << scene << " " << hero.mPosX << " " << hero.mPosY << " " << hero.direction ;
+        file << scene << " " << floor(hero.mPosX/48)*48 << " " << floor(hero.mPosY/48)*48 << " " << hero.direction ;
         file.close();
         step = 0;
         scene = MENU;
@@ -955,6 +965,16 @@ void Scene::logicScene()
             d = FRONT;
         }
     }
+
+    if (step != 0)
+    {
+        for (auto& bullet : bullets) 
+        if(bullet.startsfx) 
+        {
+            Mix_PlayChannel(-1, fireexplosionsfx, 0);
+            bullet.startsfx = false;
+        }
+    }
 }
 
 void Scene::renderScene()
@@ -1234,7 +1254,7 @@ void Scene::renderScene()
                 custom.y = setting.my + setting.mh * 26 / 35;
                 text.render(0, 0, &custom);
             }
-            string a = to_string(msv);
+            string a = to_string(msv * 100 / 128) + "%" ;
             SDL_Color textColor = { 255, 255, 255, 255 };
                 text.loadFromRenderedText( a, textColor, gArial );
                 custom.h = setting.mh * 0.04;
@@ -1243,7 +1263,7 @@ void Scene::renderScene()
                 custom.y = setting.my + setting.mh * 7 / 30;
                 text.render(0, 0, &custom);
 
-                a = to_string(sfx);
+                a = to_string(sfx * 100 / 128) + "%" ;
                 text.loadFromRenderedText( a, textColor, gArial );
                 custom.h = setting.mh * 0.04;
                 custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
@@ -1824,6 +1844,8 @@ void loadMedia()
     crystal.loadFromFile( "assets/texture/map/crystal.png" );
     skvn.loadFromFile( "assets/texture/img/k1.png" );
     ske.loadFromFile( "assets/texture/img/k2.png" );
+    firesfx = Mix_LoadWAV("assets/sound/fire sfx.wav");
+    fireexplosionsfx = Mix_LoadWAV("assets/sound/fire explosion sfx.wav");
 
     for( int j = 0; j < 4; ++j )
     {

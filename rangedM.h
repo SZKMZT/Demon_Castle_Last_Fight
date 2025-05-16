@@ -32,7 +32,7 @@ class Bullet
         Texture* mTexturee;
         int camx, camy;
         int step, step1;
-        bool start;
+        bool start, startsfx;
         int xx, yy, xa, ya;
         bool v;
         vector<vector<int>> blockmap;
@@ -59,6 +59,7 @@ Bullet::Bullet(Texture* texture)
     step = 0;
     step1 = 0;
     start = false;
+    startsfx = false;
     v = false;
 }
 
@@ -208,6 +209,7 @@ void Bullet::var()
             v = true;
             if (step1 == 0)
             {
+                startsfx = true;
                 framerate = 25;
                 step1 = 1;
                 cframe = 0;
