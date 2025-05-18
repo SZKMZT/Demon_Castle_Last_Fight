@@ -150,7 +150,7 @@ void Scene::shoot(int special, int x, int y, int v, double angle, vector<vector<
 
 Scene::Scene()
 {
-    scene = MAP_T1;
+    scene = START_MENU;
     step = 0;
     stepf = 0;
     alpha = 0;
