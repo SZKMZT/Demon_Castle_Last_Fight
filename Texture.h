@@ -36,6 +36,7 @@ class Texture
 		void setBlendMode( SDL_BlendMode blending );
 		void setAlpha( Uint8 alpha );
 		void render( int x, int y, SDL_Rect* custom = nullptr, SDL_Rect* clip = nullptr, bool zoom = false, double angle = 0.0, SDL_Point* center = nullptr, SDL_RendererFlip flip = SDL_FLIP_NONE );
+		void render2( int x, int y, SDL_Rect* custom = nullptr, SDL_Rect* clip = nullptr, bool zoom = false, double angle = 0.0, SDL_Point* center = nullptr, SDL_RendererFlip flip = SDL_FLIP_NONE );
 		ButtonState handleEvent( SDL_Event* e );
 		int getWidth();
 		int getHeight();
@@ -158,6 +159,52 @@ void Texture::render( int x, int y, SDL_Rect* custom, SDL_Rect* clip, bool zoom,
 	if( zoom )
 	{
 		if (static_cast<double>(renderQuad.w) / renderQuad.h < 
+			static_cast<double>(SCREEN_WIDTH) / SCREEN_HEIGHT)
+		{
+			double rate = static_cast<double>(renderQuad.w) / renderQuad.h;
+			renderQuad.h = SCREEN_HEIGHT;
+			renderQuad.w = static_cast<int>(renderQuad.h * rate);
+			renderQuad.x = (SCREEN_WIDTH - renderQuad.w) / 2;
+		}
+		else
+		{
+			double rate = static_cast<double>(renderQuad.h) / renderQuad.w;
+			renderQuad.w = SCREEN_WIDTH;
+			renderQuad.h = static_cast<int>(renderQuad.w * rate);
+			renderQuad.y = (SCREEN_HEIGHT - renderQuad.h) / 2;
+		}
+	}
+	mx = renderQuad.x;
+	my = renderQuad.y;
+	mw = renderQuad.w;
+	mh = renderQuad.h;
+
+	while (angle >= 360) angle -= 360;
+	while (angle < 0) angle += 360;
+
+	SDL_RenderCopyEx( gRenderer, mTexture, clip, &renderQuad, angle, center, flip );
+}
+
+void Texture::render2( int x, int y, SDL_Rect* custom, SDL_Rect* clip, bool zoom, double angle, SDL_Point* center, SDL_RendererFlip flip )
+{
+	if (mTexture == nullptr) cout << "lỗi mTexture 2" << endl;
+	SDL_Rect renderQuad = { x, y, mWidth, mHeight };
+
+	if( clip != nullptr )
+	{
+		renderQuad.w = clip->w;
+		renderQuad.h = clip->h;
+	}
+	if ( custom != nullptr )
+	{
+		renderQuad.x = custom->x;
+		renderQuad.y = custom->y;
+		renderQuad.w = custom->w;
+		renderQuad.h = custom->h;
+	}
+	if( zoom )
+	{
+		if (static_cast<double>(renderQuad.w) / renderQuad.h > 
 			static_cast<double>(SCREEN_WIDTH) / SCREEN_HEIGHT)
 		{
 			double rate = static_cast<double>(renderQuad.w) / renderQuad.h;

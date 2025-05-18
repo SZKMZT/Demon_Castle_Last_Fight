@@ -11,7 +11,6 @@ struct datachar
 {
     int health;
     int power;
-    int mana;
     int speed; // pixel/s
 };
 
@@ -54,6 +53,7 @@ class Characters
         void getmapxy(Texture* mapp, string mappp);
         void cameraxy();
         void stop();
+        datachar datas;
         SDL_Rect camxy();
         int mx_camx, my_camy;
         vector<vector<int>> blockmap;
@@ -66,8 +66,15 @@ class Characters
 		int mHeight;
         double mPosX, mPosY;
         double mVelX, mVelY;
+        bool motionp;
+        bool b1; //b1: khi dừng lại sẽ cho nhân vật animation cho đến khi tới animation dừng(tăng mượt)
+        bool m1; // khóa kiểu di chuyển từng pixel (dùng nút)
+        bool m2; // khóa kiểu di chuyển dài, tự di chuyển (dùng chuột) 
+        //motionp: khi di chuyển kiểu pixel, ngay khi di chuyển, thay đổi mVelX, mVelY thì khóa chức năng để nhân vật đi tới điểm tới rồi mới trả lại quyền, tránh tốc độ bị nhân lên quá nhiều hay ảnh hưởng tới quá trình tự động di chuyển
+        //m1: khi mdi chuyển kiểu pixel, sử dụng chuột để định hướng nhân vật tới 1 điểm mà cần di chuyển nhiều ô, m1 sẽ khóa chức năng đi từng ô và kích hoạt bằng phím để quá trình tự động hóa. Nhân vật sẽ đi  từng ô một, 
+        //Và m2 sẽ giúp chia nhỏ các bước di chuyển. Mỗi khi di chuyển từng ô xong thì m2 sẽ mở ra giúp tự động hóa tìm đường tiếp theo, chọn ra hướng di chuyển, thay đổi mVelX, mVelY và khóa lại.
+        //b1: khi nhân vật di chuyển, sẽ có hoạt ảnh di chuyển nhưng vấn đề xảy ra, khi dừng lại và di chuyển (di chuyển kiểu pixel rất dễ nhận ra), nhân vật bị giật giật, lỗi là do hoạt ảnh chưa tiếp nối nhau mà bị đứt quãng. Vậy nên b1 để giúp nhân vật chuyển động hết hoạt ảnh tới hoạt ảnh dừng thì thôi.
     private:
-        datachar datas;
         Texture* mTexture;
         vector<SDL_Rect> clipss;
         int framerate;
@@ -79,23 +86,16 @@ class Characters
         Uint32 lasttime;
         Uint32 lasttime2;
         double deltatime;
-        bool motionp;
         int movepx, movepy; //đích đến kiểu di chuyển pixel (từng ô)
         int movepxe, movepye; //đích đến kiểu di chuyển pixel (nhiều ô), tạo nhiều mốc di chuyển bằng movepx, movepy
-        bool b1, m1, m2;
-        //motionhp: khi di chuyển kiểu pixel, ngay khi di chuyển, thay đổi mVelX, mVelY thì khóa chức năng để nhân vật đi tới điểm tới rồi mới trả lại quyền, tránh tốc độ bị nhân lên quá nhiều hay ảnh hưởng tới quá trình tự động di chuyển
-        //m1: khi mdi chuyển kiểu pixel, sử dụng chuột để định hướng nhân vật tới 1 điểm mà cần di chuyển nhiều ô, m1 sẽ khóa chức năng đi từng ô và kích hoạt bằng phím để quá trình tự động hóa. Nhân vật sẽ đi  từng ô một, 
-        //Và m2 sẽ giúp chia nhỏ các bước di chuyển. Mỗi khi di chuyển từng ô xong thì m2 sẽ mở ra giúp tự động hóa tìm đường tiếp theo, chọn ra hướng di chuyển, thay đổi mVelX, mVelY và khóa lại.
-        //b1: khi nhân vật di chuyển, sẽ có hoạt ảnh di chuyển nhưng vấn đề xảy ra, khi dừng lại và di chuyển (di chuyển kiểu pixel rất dễ nhận ra), nhân vật bị giật giật, lỗi là do hoạt ảnh chưa tiếp nối nhau mà bị đứt quãng. Vậy nên b1 để giúp nhân vật chuyển động hết hoạt ảnh tới hoạt ảnh dừng thì thôi.
 };
 
 Characters::Characters(Texture* texture)
 {
     mTexture = texture;
-    datas.health = 100;
-    datas.power = 5;
-    datas.mana = 100;
-    datas.speed = 6*48;
+    datas.health = 1000;
+    datas.power = 20;
+    datas.speed = 4*48;
     mVelX = 0;
     mVelY = 0;
     mPosX = 0;

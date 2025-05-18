@@ -17,6 +17,7 @@
 #include <SDL_mixer.h>
 #include <cstdlib>
 #include <ctime>
+#include <chrono>
 using namespace std;
 
 enum Scenes
@@ -38,6 +39,7 @@ enum Scenes
     CHALLENGE_2 = 14,
     CHALLENGE_3 = 15,
     CHALLENGE_4 = 16,
+    GAME_OVER = 17,
 };
 
 class Scene
@@ -54,7 +56,7 @@ class Scene
         bool vsync;
         bool fadein(Texture* tex); //hiện dần
         bool fadeout(Texture* tex); //mờ dần
-        void shoot(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool ally, bool anglelockk);
+        void shoot(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool ally, bool anglelockk, bool dis, int dam);
         Scenes scene;
     private:
         int step, stepf;
@@ -67,7 +69,8 @@ class Scene
         int xsp, ysp;
         Direction d;
         bool pixelmotionn;
-        vector<Bullet> bullets;
+        vector<Bullet> bullets1;
+        vector<Bullet> bullets2;
         Bullet b3;
         bool cha1, cha2, cha3, cha4;
 };
@@ -104,6 +107,7 @@ Texture mapa4;
 Texture mapg1;
 Texture mapg2;
 Texture challenge1;
+Texture challenge3;
 Texture dark;
 Texture dimension2;
 Texture gate2;
@@ -114,11 +118,14 @@ Texture crystalb;
 Texture crystaly;
 Texture skvn;
 Texture ske;
+Texture gameovervn;
+Texture gameovereng;
 Characters hero;
 Characters dimension;
 Characters gate;
 SDL_Rect menuclips[ 4 ];
 Timer time1;
+Timer bullett;
 Timer fpscc;
 Window gWindow;
 Mix_Chunk* sfxsound[7];
@@ -140,12 +147,13 @@ bool smooth_camera = false;
 extern bool quit;
 extern bool vsync2;
 
-//special; tọa độ đạn (x,y); vector; angle; map; đạn đồng minh?; khóa góc
-void Scene::shoot(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool allyy, bool anglelockk)                
+//special; tọa độ đạn (x,y); vector; angle; map; đạn đồng minh?; khóa góc; xóa đạn luôn khi vào tường; sát thương
+void Scene::shoot(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool allyy, bool anglelockk, bool dis, int dam)                
 {
     Bullet newBullet;
-    newBullet.addbullet(special, x, y, v, angle, bm, allyy, anglelockk);
-    bullets.push_back(newBullet);
+    newBullet.addbullet(special, x, y, v, angle, bm, allyy, anglelockk, dis, dam);
+    if(allyy) bullets1.push_back(newBullet);
+    else bullets2.push_back(newBullet);
 }
 
 Scene::Scene()
@@ -180,9 +188,16 @@ Scene::Scene()
     //xsp = 19; //garden
     //ysp = 35;
 
+    //xsp = 5; //cha3
+    //ysp = 83;
+
+    //xsp = 30; //cha3.2
+    //ysp = 45;
+
     d = FRONT;
     pixelmotionn = true;
-    srand(time(0));
+    //srand(time(0));
+    bullett.setstarttime();
 }
 
 Scene::~Scene()
@@ -253,7 +268,7 @@ void Scene::handleEvent(SDL_Event& e)
                     ifstream file("save/save.txt");
                     if (file >> sceneValue) 
                     {
-                        file >> hero.mPosX >> hero.mPosY >> di >> cha1 >> cha2 >> cha3 >> cha4;
+                        file >> hero.mPosX >> hero.mPosY >> di >> cha1 >> cha2 >> cha3 >> cha4 >> hero.datas.health;
                         xsp = floor((hero.mPosX+48)/48);
                         ysp = floor((hero.mPosY+48)/48);
                         d = static_cast<Direction>(di);
@@ -510,9 +525,50 @@ void Scene::handleEvent(SDL_Event& e)
         }
     }   
 
-    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q && step != 0) 
+    else if ( scene == CHALLENGE_3 && step != 0 )
     {
-        shoot(rand() % 9, hero.mPosX, hero.mPosY, 48*3, 0, hero.blockmap, true, false);
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+
+        if (hero.blockevent == 800 && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_e)
+        {
+            hero.stop();
+            cha3 = true;
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 30;
+            ysp = 34;
+            d = FRONT;
+        }
+    }   
+
+    if ((e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q && e.key.repeat == 0) || (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && !pixelmotionn) && step != 0) 
+    {
+        shoot(rand() % 9, hero.mPosX, hero.mPosY, 48*6, 0, hero.blockmap, true, false, false, hero.datas.power);
+    }
+
+    else if ( scene == GAME_OVER )
+    {
+       if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN)
+       {
+            step = 0;
+            int sceneValue;
+            int di;
+            ifstream file("save/save.txt");
+            if (file >> sceneValue) 
+            {
+                file >> hero.mPosX >> hero.mPosY >> di >> cha1 >> cha2 >> cha3 >> cha4 >> hero.datas.health;
+                xsp = floor((hero.mPosX+48)/48);
+                ysp = floor((hero.mPosY+48)/48);
+                d = static_cast<Direction>(di);
+                scene = static_cast<Scenes>(sceneValue);
+            }
+            file.close();
+       } 
     }
 
     if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_m && step != 0) 
@@ -541,7 +597,7 @@ void Scene::handleEvent(SDL_Event& e)
         hero.mVelX = 0;
         hero.mVelY = 0;
         ofstream file("save/save.txt");
-        file << scene << " " << floor(hero.mPosX/48)*48 << " " << floor(hero.mPosY/48)*48 << " " << hero.direction << " " << cha1 << " " << cha2<< " " << cha3<< " " << cha4 ;
+        file << scene << " " << floor(hero.mPosX/48)*48 << " " << floor(hero.mPosY/48)*48 << " " << hero.direction << " " << cha1 << " " << cha2<< " " << cha3<< " " << cha4 << " " << hero.datas.health;
         file.close();
         step = 0;
         scene = MENU;
@@ -952,10 +1008,10 @@ void Scene::logicScene()
         else if (hero.blockevent == 953 && !cha3)
         {
             hero.stop();
-            scene = CHALLENGE_1;
+            scene = CHALLENGE_3;
             step = 0;
-            xsp = 64;
-            ysp = 160;
+            xsp = 5;
+            ysp = 83;
             d = FRONT;
         }
         else if (hero.blockevent == 954 && !cha4)
@@ -985,16 +1041,184 @@ void Scene::logicScene()
         }
     }
 
+    else if ( scene == CHALLENGE_3 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 19;
+            ysp = 35;
+            d = FRONT;
+        }
+        if (hero.blockevent == 801) 
+        {
+            if(pixelmotionn)
+            {
+                hero.mVelX = 0;
+                hero.mVelY = 0;
+                hero.b1 = false;
+                hero.m1 = false;
+                hero.m2 = false;
+                hero.motionp = false;
+            } 
+            hero.mPosY -= 3;
+        }
+        if (hero.blockevent == 802) 
+        {
+            if(pixelmotionn)
+            {
+                hero.mVelX = 0;
+                hero.mVelY = 0;
+                hero.b1 = false;
+                hero.m1 = false;
+                hero.m2 = false;
+                hero.motionp = false;
+            } 
+            hero.mPosX += 3;
+        }
+        if (hero.blockevent == 803) 
+        {
+            if(pixelmotionn)
+            {
+                hero.mVelX = 0;
+                hero.mVelY = 0;
+                hero.b1 = false;
+                hero.m1 = false;
+                hero.m2 = false;
+                hero.motionp = false;
+            } 
+            hero.mPosY += 3;
+        }
+        if (hero.blockevent == 804) 
+        {
+            if(pixelmotionn)
+            {
+                hero.mVelX = 0;
+                hero.mVelY = 0;
+                hero.b1 = false;
+                hero.m1 = false;
+                hero.m2 = false;
+                hero.motionp = false;
+            } 
+            hero.mPosX -= 3;
+        }
+    
+        if (bullett.gettime() > 100)
+        {
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 2 *48-48, 82 *48-48, 48*3, 135, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 8 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 14 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 20 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 26 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 32 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 38 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 44 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 50 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 56 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 62 *48-48, 82 *48-48, 48*3, ((rand() % 2 == 0) ? 135 : 45), hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 68 *48-48, 82 *48-48, 48*3, 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 74 *48-48, 82 *48-48, 48*3, 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 80 *48-48, 82 *48-48, 48*3, 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 2 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 8 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 14 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 20 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 26 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 32 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 38 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 44 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 50 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 56 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 5 == 0) shoot(rand() % 2 + 7, 62 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 60 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 54 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 48 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 42 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 36 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 30 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 24 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 63 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 57 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 51 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 45 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 39 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 33 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 27 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 22 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 20 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 18 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 16 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 14 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 12 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 10 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 8 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 6 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 4 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 61 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 59 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 57 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 55 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 53 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 51 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 49 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 47 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 45 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 43 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 41 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 39 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 37 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 35 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 33 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 31 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 29 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 27 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 25 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 10 == 0) shoot(rand() % 2 + 7, 23 *48-48, 22 *48-48, 48*4, (rand() % 10) * 10 + 45, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 2 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 3 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 4 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 5 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 6 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 7 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 8 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 9 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 10 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 11 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 12 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 13 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 14 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 15 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 16 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 17 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 18 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 19 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 20 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 21 *48-48, 52 *48-48, 48*4, 90, hero.blockmap, false, true, true, 25);
+            bullett.setstarttime();
+        }    
+    }
+
     if (step != 0)
     {
-        for (auto& bullet : bullets) 
-        if( sqrt( pow( hero.mPosX - bullet.mPosX , 2 ) + pow( hero.mPosY - bullet.mPosY, 2 ) ) < 24 && !bullet.ally) 
+        for (auto& bullet : bullets2) 
+        if( sqrt( pow( hero.mPosX - bullet.mPosX , 2 ) + pow( hero.mPosY - bullet.mPosY, 2 ) ) < 24) 
         {
             bullet.collide = true;
+            if (!bullet.getdamage)
+            {
+                hero.datas.health -= bullet.damage;
+                bullet.getdamage = true;
+                cout << hero.datas.health << endl;
+            }
         }
 
-        for (auto& bullet1 : bullets)
-        for (auto& bullet2 : bullets)
+        for (auto& bullet1 : bullets1)
+        for (auto& bullet2 : bullets2)
         {
             if (&bullet1 == &bullet2 || bullet1.ally == bullet2.ally) continue; 
             if( sqrt( pow( bullet1.mPosX - bullet2.mPosX , 2 ) + pow( bullet1.mPosY - bullet2.mPosY, 2 ) ) < 24) 
@@ -1004,8 +1228,15 @@ void Scene::logicScene()
             }
         }
     }
-
-    if(step == 0 && !bullets.empty()) bullets.clear();
+    if(step == 0 && !bullets1.empty()) bullets1.clear();
+    if(step == 0 && !bullets2.empty()) bullets2.clear();
+    srand(chrono::high_resolution_clock::now().time_since_epoch().count());
+    if(hero.datas.health < 0)
+    {
+        hero.stop();
+        scene = GAME_OVER;
+        step = 0;
+    }
 }
 
 void Scene::renderScene()
@@ -1287,20 +1518,20 @@ void Scene::renderScene()
             }
             string a = to_string(msv * 100 / 128) + "%" ;
             SDL_Color textColor = { 255, 255, 255, 255 };
-                text.loadFromRenderedText( a, textColor, gArial );
-                custom.h = setting.mh * 0.04;
-                custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
-                custom.x = setting.mx + setting.mw * 39 / 70 + (setting.mw * 9 / 35 - custom.w) / 2;
-                custom.y = setting.my + setting.mh * 7 / 30;
-                text.render(0, 0, &custom);
+            text.loadFromRenderedText( a, textColor, gArial );
+            custom.h = setting.mh * 0.04;
+            custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
+            custom.x = setting.mx + setting.mw * 39 / 70 + (setting.mw * 9 / 35 - custom.w) / 2;
+            custom.y = setting.my + setting.mh * 7 / 30;
+            text.render(0, 0, &custom);
 
-                a = to_string(sfx * 100 / 128) + "%" ;
-                text.loadFromRenderedText( a, textColor, gArial );
-                custom.h = setting.mh * 0.04;
-                custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
-                custom.x = setting.mx + setting.mw * 39 / 70 + (setting.mw * 9 / 35 - custom.w) / 2;
-                custom.y = setting.my + setting.mh * 3 / 10;
-                text.render(0, 0, &custom);
+            a = to_string(sfx * 100 / 128) + "%" ;
+            text.loadFromRenderedText( a, textColor, gArial );
+            custom.h = setting.mh * 0.04;
+            custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
+            custom.x = setting.mx + setting.mw * 39 / 70 + (setting.mw * 9 / 35 - custom.w) / 2;
+            custom.y = setting.my + setting.mh * 3 / 10;
+            text.render(0, 0, &custom);
         }
     }
 
@@ -1698,10 +1929,47 @@ void Scene::renderScene()
         }
     }
 
-    if (step != 0 && !bullets.empty())
+    else if ( scene == CHALLENGE_3 )
     {
-        for (auto& bullet : bullets) bullet.active(hero.mPosX, hero.mPosY, hero.camera.x, hero.camera.y);
-        bullets.erase (remove_if(bullets.begin(), bullets.end(), [](Bullet& b) { return !b.start; }), bullets.end());
+        if (step==0)
+        {
+            hero.getmapxy(&challenge3, "cha3.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            challenge3.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            challenge3.render(0, 0, nullptr, &cameraRect);
+            crystalb.render(35*48 - hero.camera.x, 42*48 - hero.camera.y);
+            hero.animated(hero.mx_camx, hero.my_camy);
+        }
+    }
+
+    else if ( scene == GAME_OVER )
+    {
+        if (vn) gameovervn.render2( 0, 0, nullptr, nullptr, true );
+        else gameovereng.render2( 0, 0, nullptr, nullptr, true );
+    }
+
+    if (step != 0 && !bullets1.empty())
+    {
+        for (auto& bullet : bullets1) bullet.active(hero.mPosX, hero.mPosY, hero.camera.x, hero.camera.y);
+        bullets1.erase (remove_if(bullets1.begin(), bullets1.end(), [](Bullet& b) { return !b.start; }), bullets1.end());
+    }
+    if (step != 0 && !bullets2.empty())
+    {
+        for (auto& bullet : bullets2) bullet.active(hero.mPosX, hero.mPosY, hero.camera.x, hero.camera.y);
+        bullets2.erase (remove_if(bullets2.begin(), bullets2.end(), [](Bullet& b) { return !b.start; }), bullets2.end());
     }
     
     if (fps_show)
@@ -1726,6 +1994,19 @@ void Scene::renderScene()
             custom.y = 0;
             text.render(0, 0, &custom);
         }
+    }
+
+    if (scene >= MAP_T1 && scene <= CHALLENGE_4)
+    {
+        string a = "Hp: " + to_string(hero.datas.health);
+        SDL_Color textColor = { 255, 255, 255, 255 };
+        text.loadFromRenderedText( a, textColor, gArial );
+        SDL_Rect custom;
+        custom.h = SCREEN_HEIGHT / 25;
+        custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
+        custom.x = SCREEN_WIDTH - text.mw;
+        custom.y = 0;
+        text.render(0, 0, &custom);
     }
 }
 
@@ -1816,6 +2097,7 @@ void Scene::free()
     mapg1.free();
     mapg2.free();
     challenge1.free();
+    challenge3.free();
     dark.free();
     dimension2.free();
     gate2.free();
@@ -1826,6 +2108,8 @@ void Scene::free()
     crystaly.free();
     skvn.free();
     ske.free();
+    gameovervn.free();
+    gameovereng.free();
     buttons.clear();
     gWindow.free();
     SDL_DestroyRenderer( gRenderer );
@@ -1866,10 +2150,10 @@ void loadMedia()
     mapg1.loadFromFile( "assets/texture/map/mgarden.png" );
     mapg2.loadFromFile( "assets/texture/map/mgarden2.png" );
     challenge1.loadFromFile( "assets/texture/map/maploz.png" );
+    challenge3.loadFromFile( "assets/texture/map/cha3.png" );
     dark.loadFromFile( "assets/texture/img/transparent3.png" );
     dimension2.loadFromFile( "assets/texture/effect/dimension2.png" );
     gate2.loadFromFile( "assets/texture/map/gate.png" );
-
     bullettexture[0].loadFromFile( "assets/texture/effect/classic.png" );
     bullettexture[1].loadFromFile( "assets/texture/effect/fire.png" );
     bullettexture[2].loadFromFile( "assets/texture/effect/earth.png" );
@@ -1879,13 +2163,14 @@ void loadMedia()
     bullettexture[6].loadFromFile( "assets/texture/effect/holy.png" );
     bullettexture[7].loadFromFile( "assets/texture/effect/dark1.png" );
     bullettexture[8].loadFromFile( "assets/texture/effect/dark2.png" );
-
     crystalr.loadFromFile( "assets/texture/map/crystal red.png" );
     crystalg.loadFromFile( "assets/texture/map/crystal green.png" );
     crystalb.loadFromFile( "assets/texture/map/crystal blue.png" );
     crystaly.loadFromFile( "assets/texture/map/crystal yellow.png" );
     skvn.loadFromFile( "assets/texture/img/k1.png" );
     ske.loadFromFile( "assets/texture/img/k2.png" );
+    gameovervn.loadFromFile( "assets/texture/img/gameover1.png" );
+    gameovereng.loadFromFile( "assets/texture/img/gameover2.png" );
 
     sfxsound[0] = Mix_LoadWAV("assets/sound/fire sfx.wav");
     sfxsound[1] = Mix_LoadWAV("assets/sound/fire explosion sfx.wav");
@@ -1931,6 +2216,7 @@ void close()
     mapg1.free();
     mapg2.free();
     challenge1.free();
+    challenge3.free();
     dark.free();
     dimension2.free();
     gate2.free();
@@ -1941,6 +2227,8 @@ void close()
     crystaly.free();
     skvn.free();
     ske.free();
+    gameovervn.free();
+    gameovereng.free();
 
 
     gWindow.free();

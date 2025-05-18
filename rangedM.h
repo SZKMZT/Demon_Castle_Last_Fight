@@ -36,7 +36,7 @@ class Bullet
 {
     public:
         Bullet();
-        void addbullet(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool allyy, bool anglelockk);
+        void addbullet(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool allyy, bool anglelockk, bool diss, int dam);
         void var();
         void active(int xs, int ys, int x, int y); // xs, ys: tọa độ nhân vật,; x, y: tọa độ camera
         void free();
@@ -60,6 +60,9 @@ class Bullet
         bool ally; //đồng minh
         bool anglelock;
         int special;
+        bool dis;
+        int damage;
+        bool getdamage;
 };
 
 extern Texture bullettexture[9];
@@ -89,9 +92,12 @@ Bullet::Bullet()
     anglelock = true;
     special = 0;
     srand(time(0));
+    dis = false;
+    damage = 0;
+    getdamage = false;
 }
 
-void Bullet::addbullet(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool allyy, bool anglelockk)
+void Bullet::addbullet(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool allyy, bool anglelockk, bool diss, int dam)
 {
     blockmap = bm;
     mPosX = x;
@@ -121,14 +127,19 @@ void Bullet::addbullet(int special, int x, int y, int v, double angle, vector<ve
     ally = allyy;
     anglelock = anglelockk;
     this->special = special;
-    if(special==0) Mix_PlayChannel(-1, sfxsound[0], 0);
-    if(special==1) Mix_PlayChannel(-1, sfxsound[0], 0);
-    if(special==3) Mix_PlayChannel(-1, sfxsound[0], 0);
-    if(special==4) Mix_PlayChannel(-1, sfxsound[3], 0);
-    if(special==5) Mix_PlayChannel(-1, sfxsound[0], 0);
-    if(special==6) Mix_PlayChannel(-1, sfxsound[0], 0);
-    if(special==7) Mix_PlayChannel(-1, sfxsound[0], 0);
-    if(special==8) Mix_PlayChannel(-1, sfxsound[0], 0);
+    dis = diss;
+    damage = dam;
+    if(!dis)
+    {
+        if(special==0) Mix_PlayChannel(-1, sfxsound[0], 0);
+        if(special==1) Mix_PlayChannel(-1, sfxsound[0], 0);
+        if(special==3) Mix_PlayChannel(-1, sfxsound[0], 0);
+        if(special==4) Mix_PlayChannel(-1, sfxsound[3], 0);
+        if(special==5) Mix_PlayChannel(-1, sfxsound[0], 0);
+        if(special==6) Mix_PlayChannel(-1, sfxsound[0], 0);
+        if(special==7) Mix_PlayChannel(-1, sfxsound[0], 0);
+        if(special==8) Mix_PlayChannel(-1, sfxsound[0], 0);
+    }
 }
 //mịa mấy cái quay quay ảo đ chịu được :V từ chối hiểu, thôi chạy được là được
 void Bullet::active(int xs, int ys, int x, int y) //xs, ys là tọa độ đầu tiên của viên đạn, tạo ra vòng phép và bắn; x, y là tọa độ camera
@@ -344,7 +355,7 @@ void Bullet::active(int xs, int ys, int x, int y) //xs, ys là tọa độ đầ
                     {
                         cframe = (cframe + 1) % (14);
                         lasttime = SDL_GetTicks();
-                        if (cframe == 6 )Mix_PlayChannel(-1, sfxsound[0], 0);
+                        if (cframe == 6 && !dis)Mix_PlayChannel(-1, sfxsound[0], 0);
                     }
                     if(cframe==-1) bullettexture[2].render(0, 0, &custom, &clip[0], false, angle+45, &center);
                     else bullettexture[2].render(0, 0, &custom, &clip[cframe], false, angle+45, &center);
@@ -896,7 +907,8 @@ void Bullet::var()
         int blockx = floor( (mPosX + 24) / 48 );
         int blocky = floor( (mPosY + 24) / 48 );
         
-        if (blockmap[blockx][blocky] == 1 || collide) 
+        if(blockmap[blockx][blocky] == 1 && dis) start = false;
+        if ((blockmap[blockx][blocky] == 1 || collide) && start ) 
         {
             v = true;
             if(special == 0)
