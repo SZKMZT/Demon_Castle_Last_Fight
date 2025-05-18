@@ -15,6 +15,8 @@
 #include <fstream>
 #include <cmath>
 #include <SDL_mixer.h>
+#include <cstdlib>
+#include <ctime>
 using namespace std;
 
 enum Scenes
@@ -52,7 +54,7 @@ class Scene
         bool vsync;
         bool fadein(Texture* tex); //hiện dần
         bool fadeout(Texture* tex); //mờ dần
-        void shoot(Texture* texture1, Texture* texture2, Texture* texture3, int x, int y, int v, double angle, vector<vector<int>> bm);
+        void shoot(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool ally, bool anglelockk);
         Scenes scene;
     private:
         int step, stepf;
@@ -67,6 +69,7 @@ class Scene
         bool pixelmotionn;
         vector<Bullet> bullets;
         Bullet b3;
+        bool cha1, cha2, cha3, cha4;
 };
 
 int SCREEN_WIDTH = 720;
@@ -104,10 +107,11 @@ Texture challenge1;
 Texture dark;
 Texture dimension2;
 Texture gate2;
-Texture fire0;
-Texture fire1;
-Texture fire2;
-Texture crystal;
+Texture bullettexture[9];
+Texture crystalr;
+Texture crystalg;
+Texture crystalb;
+Texture crystaly;
 Texture skvn;
 Texture ske;
 Characters hero;
@@ -117,8 +121,7 @@ SDL_Rect menuclips[ 4 ];
 Timer time1;
 Timer fpscc;
 Window gWindow;
-Mix_Chunk* firesfx;
-Mix_Chunk* fireexplosionsfx;
+Mix_Chunk* sfxsound[7];
 
 int msv;
 int sfx;
@@ -137,17 +140,17 @@ bool smooth_camera = false;
 extern bool quit;
 extern bool vsync2;
 
-void Scene::shoot(Texture* texture1, Texture* texture2, Texture* texture3, int x, int y, int v, double angle, vector<vector<int>> bm) 
+//special; tọa độ đạn (x,y); vector; angle; map; đạn đồng minh?; khóa góc
+void Scene::shoot(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool allyy, bool anglelockk)                
 {
     Bullet newBullet;
-    newBullet.addbullet(texture1, texture2, texture3, x, y, v, angle, bm);
+    newBullet.addbullet(special, x, y, v, angle, bm, allyy, anglelockk);
     bullets.push_back(newBullet);
-    Mix_PlayChannel(-1, firesfx, 0);
 }
 
 Scene::Scene()
 {
-    scene = START_MENU;
+    scene = MAP_T1;
     step = 0;
     stepf = 0;
     alpha = 0;
@@ -157,9 +160,13 @@ Scene::Scene()
     fps_show = false;
     fps_max = false;
     vn = true; 
+    cha1 = false;
+    cha2 = false;
+    cha3 = false;
+    cha4 = false;
 
-    //xsp = 41; //sảnh 1?
-    //ysp = 43;
+    xsp = 41; //sảnh 1
+    ysp = 43;
 
     //xsp = 4; //map1
     //ysp = 28;
@@ -167,14 +174,15 @@ Scene::Scene()
     //xsp = 64; //maze-cha1
     //ysp = 160;
 
-    xsp = 58; //maze-cha1.2
-    ysp = 10;
+    //xsp = 58; //maze-cha1.2
+    //ysp = 10;
 
     //xsp = 19; //garden
     //ysp = 35;
 
     d = FRONT;
     pixelmotionn = true;
+    srand(time(0));
 }
 
 Scene::~Scene()
@@ -245,7 +253,7 @@ void Scene::handleEvent(SDL_Event& e)
                     ifstream file("save/save.txt");
                     if (file >> sceneValue) 
                     {
-                        file >> hero.mPosX >> hero.mPosY >> di;
+                        file >> hero.mPosX >> hero.mPosY >> di >> cha1 >> cha2 >> cha3 >> cha4;
                         xsp = floor((hero.mPosX+48)/48);
                         ysp = floor((hero.mPosY+48)/48);
                         d = static_cast<Direction>(di);
@@ -324,7 +332,7 @@ void Scene::handleEvent(SDL_Event& e)
             fps_max = fpm;
             vn = vnm;
             Mix_VolumeMusic(music_vollume);
-            Mix_Volume(-1, SFX_vollume);
+            Mix_Volume(-1, SFX_vollume/2);
             
             if (vn)
             {
@@ -489,11 +497,22 @@ void Scene::handleEvent(SDL_Event& e)
             hero.mousepixel(&e);
         }
         else hero.motion(&e);
+
+        if (hero.blockevent == 801 && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_e)
+        {
+            hero.stop();
+            cha1 = true;
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 8;
+            ysp = 12;
+            d = FRONT;
+        }
     }   
 
     if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q && step != 0) 
     {
-        shoot(&fire0, &fire1, &fire2, hero.mPosX, hero.mPosY, 48*10, -90, hero.blockmap);
+        shoot(rand() % 9, hero.mPosX, hero.mPosY, 48*3, 0, hero.blockmap, true, false);
     }
 
     if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_m && step != 0) 
@@ -522,12 +541,12 @@ void Scene::handleEvent(SDL_Event& e)
         hero.mVelX = 0;
         hero.mVelY = 0;
         ofstream file("save/save.txt");
-        file << scene << " " << floor(hero.mPosX/48)*48 << " " << floor(hero.mPosY/48)*48 << " " << hero.direction ;
+        file << scene << " " << floor(hero.mPosX/48)*48 << " " << floor(hero.mPosY/48)*48 << " " << hero.direction << " " << cha1 << " " << cha2<< " " << cha3<< " " << cha4 ;
         file.close();
         step = 0;
         scene = MENU;
     }
-}
+}   
 
 void Scene::logicScene()
 {
@@ -912,7 +931,7 @@ void Scene::logicScene()
             ysp = 35;
             d = FRONT;
         }
-        else if (hero.blockevent == 951)
+        else if (hero.blockevent == 951 && !cha1)
         {
             hero.stop();
             scene = CHALLENGE_1;
@@ -921,7 +940,7 @@ void Scene::logicScene()
             ysp = 160;
             d = FRONT;
         }
-        else if (hero.blockevent == 952)
+        else if (hero.blockevent == 952 && !cha2)
         {
             hero.stop();
             scene = CHALLENGE_1;
@@ -930,7 +949,7 @@ void Scene::logicScene()
             ysp = 160;
             d = FRONT;
         }
-        else if (hero.blockevent == 953)
+        else if (hero.blockevent == 953 && !cha3)
         {
             hero.stop();
             scene = CHALLENGE_1;
@@ -939,7 +958,7 @@ void Scene::logicScene()
             ysp = 160;
             d = FRONT;
         }
-        else if (hero.blockevent == 954)
+        else if (hero.blockevent == 954 && !cha4)
         {
             hero.stop();
             scene = CHALLENGE_1;
@@ -969,12 +988,24 @@ void Scene::logicScene()
     if (step != 0)
     {
         for (auto& bullet : bullets) 
-        if(bullet.startsfx) 
+        if( sqrt( pow( hero.mPosX - bullet.mPosX , 2 ) + pow( hero.mPosY - bullet.mPosY, 2 ) ) < 24 && !bullet.ally) 
         {
-            Mix_PlayChannel(-1, fireexplosionsfx, 0);
-            bullet.startsfx = false;
+            bullet.collide = true;
+        }
+
+        for (auto& bullet1 : bullets)
+        for (auto& bullet2 : bullets)
+        {
+            if (&bullet1 == &bullet2 || bullet1.ally == bullet2.ally) continue; 
+            if( sqrt( pow( bullet1.mPosX - bullet2.mPosX , 2 ) + pow( bullet1.mPosY - bullet2.mPosY, 2 ) ) < 24) 
+            {
+            bullet1.collide = true;
+            bullet2.collide = true;
+            }
         }
     }
+
+    if(step == 0 && !bullets.empty()) bullets.clear();
 }
 
 void Scene::renderScene()
@@ -1597,10 +1628,10 @@ void Scene::renderScene()
             dimension.animatedeffect(13*48-48 - hero.camera.x, 37*48-48 - hero.camera.y, 1, 4, 2);
             dimension.animatedeffect(24*48-48 - hero.camera.x, 37*48-48 - hero.camera.y, 1, 4, 2);
             gate.animatedeffect(18*48-48 - hero.camera.x, 8*48-48 - hero.camera.y, 1, 1);
-            dimension.animatedeffect(8*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 33, 36);
-            dimension.animatedeffect(30*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 41, 44);
-            dimension.animatedeffect(8*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 49, 52);
-            dimension.animatedeffect(30*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 57, 60);
+            if(!cha1)dimension.animatedeffect(8*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 33, 36);
+            if(!cha2)dimension.animatedeffect(30*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 41, 44);
+            if(!cha4)dimension.animatedeffect(8*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 49, 52);
+            if(!cha3)dimension.animatedeffect(30*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 57, 60);
             hero.animated(hero.mx_camx, hero.my_camy);
 
             if (fadeout(&black)) step = 1;
@@ -1619,10 +1650,10 @@ void Scene::renderScene()
             dimension.animatedeffect(13*48-48 - hero.camera.x, 37*48-48 - hero.camera.y, 1, 4, 2);
             dimension.animatedeffect(24*48-48 - hero.camera.x, 37*48-48 - hero.camera.y, 1, 4, 2);
             gate.animatedeffect(18*48-48 - hero.camera.x, 8*48-48 - hero.camera.y, 1, 1);
-            dimension.animatedeffect(8*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 33, 36);
-            dimension.animatedeffect(30*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 41, 44);
-            dimension.animatedeffect(8*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 49, 52);
-            dimension.animatedeffect(30*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 57, 60);
+            if(!cha1)dimension.animatedeffect(8*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 33, 36);
+            if(!cha2)dimension.animatedeffect(30*48-48 - hero.camera.x, 12*48-48 - hero.camera.y, 41, 44);
+            if(!cha4)dimension.animatedeffect(8*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 49, 52);
+            if(!cha3)dimension.animatedeffect(30*48-48 - hero.camera.x, 34*48-48 - hero.camera.y, 57, 60);
             hero.animated(hero.mx_camx, hero.my_camy);
         }
     }
@@ -1656,7 +1687,7 @@ void Scene::renderScene()
             hero.cameraxy();
             SDL_Rect cameraRect = hero.camxy();
             challenge1.render(0, 0, nullptr, &cameraRect);
-            crystal.render(57*48 - hero.camera.x, 4*48 - hero.camera.y);
+            crystalr.render(57*48 - hero.camera.x, 4*48 - hero.camera.y);
             hero.animated(hero.mx_camx, hero.my_camy);
             SDL_Rect custom;
             custom.w = dark.mw;
@@ -1667,12 +1698,11 @@ void Scene::renderScene()
         }
     }
 
-    if (step != 0)
+    if (step != 0 && !bullets.empty())
     {
         for (auto& bullet : bullets) bullet.active(hero.mPosX, hero.mPosY, hero.camera.x, hero.camera.y);
         bullets.erase (remove_if(bullets.begin(), bullets.end(), [](Bullet& b) { return !b.start; }), bullets.end());
     }
-    else bullets.clear();
     
     if (fps_show)
     {
@@ -1789,10 +1819,11 @@ void Scene::free()
     dark.free();
     dimension2.free();
     gate2.free();
-    fire0.free();
-    fire1.free();
-    fire2.free();
-    crystal.free();
+    for (int i=0; i<9; i++) bullettexture[i].free();
+    crystalr.free();
+    crystalg.free();
+    crystalb.free();
+    crystaly.free();
     skvn.free();
     ske.free();
     buttons.clear();
@@ -1838,14 +1869,31 @@ void loadMedia()
     dark.loadFromFile( "assets/texture/img/transparent3.png" );
     dimension2.loadFromFile( "assets/texture/effect/dimension2.png" );
     gate2.loadFromFile( "assets/texture/map/gate.png" );
-    fire0.loadFromFile( "assets/texture/effect/fire0.png" );
-    fire1.loadFromFile( "assets/texture/effect/fire.png" );
-    fire2.loadFromFile( "assets/texture/effect/fire1.png" );
-    crystal.loadFromFile( "assets/texture/map/crystal.png" );
+
+    bullettexture[0].loadFromFile( "assets/texture/effect/classic.png" );
+    bullettexture[1].loadFromFile( "assets/texture/effect/fire.png" );
+    bullettexture[2].loadFromFile( "assets/texture/effect/earth.png" );
+    bullettexture[3].loadFromFile( "assets/texture/effect/wind.png" );
+    bullettexture[4].loadFromFile( "assets/texture/effect/thunder.png" );
+    bullettexture[5].loadFromFile( "assets/texture/effect/ice.png" );
+    bullettexture[6].loadFromFile( "assets/texture/effect/holy.png" );
+    bullettexture[7].loadFromFile( "assets/texture/effect/dark1.png" );
+    bullettexture[8].loadFromFile( "assets/texture/effect/dark2.png" );
+
+    crystalr.loadFromFile( "assets/texture/map/crystal red.png" );
+    crystalg.loadFromFile( "assets/texture/map/crystal green.png" );
+    crystalb.loadFromFile( "assets/texture/map/crystal blue.png" );
+    crystaly.loadFromFile( "assets/texture/map/crystal yellow.png" );
     skvn.loadFromFile( "assets/texture/img/k1.png" );
     ske.loadFromFile( "assets/texture/img/k2.png" );
-    firesfx = Mix_LoadWAV("assets/sound/fire sfx.wav");
-    fireexplosionsfx = Mix_LoadWAV("assets/sound/fire explosion sfx.wav");
+
+    sfxsound[0] = Mix_LoadWAV("assets/sound/fire sfx.wav");
+    sfxsound[1] = Mix_LoadWAV("assets/sound/fire explosion sfx.wav");
+    sfxsound[2] = Mix_LoadWAV("assets/sound/earth explosion sfx.wav");
+    sfxsound[3] = Mix_LoadWAV("assets/sound/thunder sfx.wav");
+    sfxsound[4] = Mix_LoadWAV("assets/sound/thunder explosion sfx.wav");
+    sfxsound[5] = Mix_LoadWAV("assets/sound/ice explosion sfx.wav");
+    sfxsound[6] = Mix_LoadWAV("assets/sound/explosion sfx.wav");
 
     for( int j = 0; j < 4; ++j )
     {
@@ -1886,10 +1934,11 @@ void close()
     dark.free();
     dimension2.free();
     gate2.free();
-    fire0.free();
-    fire1.free();
-    fire2.free();
-    crystal.free();
+    for (int i=0; i<9; i++) bullettexture[i].free();
+    crystalr.free();
+    crystalg.free();
+    crystalb.free();
+    crystaly.free();
     skvn.free();
     ske.free();
 

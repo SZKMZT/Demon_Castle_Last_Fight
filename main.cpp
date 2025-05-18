@@ -20,8 +20,8 @@ int main(int argc, char* argv[])
     SDL_Event e;
 
     Mix_Music* music = Mix_LoadMUS("assets/sound/music.mp3");
-    Mix_VolumeMusic(64);
-    Mix_Volume(-1, 32);
+    Mix_VolumeMusic(0);
+    Mix_Volume(-1, 32/2);
 
     while( !quit )
     {

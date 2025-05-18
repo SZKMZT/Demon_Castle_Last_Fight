@@ -1,3 +1,4 @@
+#pragma once
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
@@ -72,12 +73,12 @@ void Texture::loadFromFile( string path, bool ColorKey, Uint8 r, Uint8 g, Uint8 
     SDL_Texture* newTexture = nullptr;
 
     SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
-	if (loadedSurface == nullptr) cout << "lỗi loadedSurface" << endl;
+	if (loadedSurface == nullptr) cout << "lỗi loadedSurface " << IMG_GetError() << endl;
 
     if (ColorKey) SDL_SetColorKey(loadedSurface, SDL_TRUE, SDL_MapRGB( loadedSurface->format, r, g, b ));
 
     newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
-	if (newTexture == nullptr) cout << "lỗi newTexture" << endl;
+	if (newTexture == nullptr) cout << "lỗi newTexture " << IMG_GetError() << endl;
 
 	mWidth = loadedSurface->w;
 	mHeight = loadedSurface->h;
