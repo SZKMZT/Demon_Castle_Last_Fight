@@ -1,0 +1,3 @@
+quiz1: 4
+quiz2: chịu cho qua
+quiz3: 10.8

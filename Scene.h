@@ -73,6 +73,7 @@ class Scene
         vector<Bullet> bullets2;
         Bullet b3;
         bool cha1, cha2, cha3, cha4;
+        int cha2quiz;
 };
 
 int SCREEN_WIDTH = 720;
@@ -107,6 +108,7 @@ Texture mapa4;
 Texture mapg1;
 Texture mapg2;
 Texture challenge1;
+Texture challenge2;
 Texture challenge3;
 Texture dark;
 Texture dimension2;
@@ -120,12 +122,17 @@ Texture skvn;
 Texture ske;
 Texture gameovervn;
 Texture gameovereng;
+Texture quiz1;
+Texture quiz2;
+Texture quiz3;
+Texture answer;
 Characters hero;
 Characters dimension;
 Characters gate;
 SDL_Rect menuclips[ 4 ];
 Timer time1;
 Timer bullett;
+Timer bulletcooldown;
 Timer fpscc;
 Window gWindow;
 Mix_Chunk* sfxsound[7];
@@ -140,6 +147,7 @@ int frame = 0;
 int frame2 = 0;
 string fpscustom = "100";
 string ff = "100";
+string quizt ="";
 bool a = false;
 double newgamey = 1;
 bool smooth_camera = false;
@@ -172,7 +180,7 @@ Scene::Scene()
     cha2 = false;
     cha3 = false;
     cha4 = false;
-
+    cha2quiz = 1;
     xsp = 41; //sảnh 1
     ysp = 43;
 
@@ -194,10 +202,13 @@ Scene::Scene()
     //xsp = 30; //cha3.2
     //ysp = 45;
 
+    //xsp = 20; // cha2
+    //ysp = 37;
+
     d = FRONT;
     pixelmotionn = true;
-    //srand(time(0));
     bullett.setstarttime();
+    bulletcooldown.setstarttime();
 }
 
 Scene::~Scene()
@@ -268,7 +279,7 @@ void Scene::handleEvent(SDL_Event& e)
                     ifstream file("save/save.txt");
                     if (file >> sceneValue) 
                     {
-                        file >> hero.mPosX >> hero.mPosY >> di >> cha1 >> cha2 >> cha3 >> cha4 >> hero.datas.health;
+                        file >> hero.mPosX >> hero.mPosY >> di >> cha1 >> cha2 >> cha3 >> cha4 >> hero.datas.health >> cha2quiz;
                         xsp = floor((hero.mPosX+48)/48);
                         ysp = floor((hero.mPosY+48)/48);
                         d = static_cast<Direction>(di);
@@ -521,8 +532,50 @@ void Scene::handleEvent(SDL_Event& e)
             step = 0;
             xsp = 8;
             ysp = 12;
-            d = FRONT;
+            d = BEHIND;
         }
+    }   
+
+    else if ( scene == CHALLENGE_2 && step != 0 )
+    {
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+
+        if( e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_BACKSPACE && quizt.length() > 0) quizt.pop_back();
+        else if(e.type == SDL_TEXTINPUT) if (((e.text.text[0] >= '0' && e.text.text[0] <= '9') || e.text.text[0] <= '.')  && quizt.length() < 8) quizt += e.text.text;
+
+
+        if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN && SDL_IsTextInputActive() && quizt != "") 
+        {
+            if(cha2quiz == 1)
+            {
+                if (stod(quizt) == 4) cha2quiz = 2;
+                else hero.datas.health -= 100;
+            }
+            else if(cha2quiz == 2)
+            {
+                cha2quiz = 3;
+            }
+            else if(cha2quiz == 3)
+            {
+                if (stod(quizt) == 10.8)
+                {
+                    hero.stop();
+                    cha2 = true;
+                    scene = MAP_GARDEN;
+                    step = 0;
+                    xsp = 30;
+                    ysp = 12;
+                    d = BEHIND;
+                }
+                else hero.datas.health -= 100;
+            }
+            quizt = "";
+       }
     }   
 
     else if ( scene == CHALLENGE_3 && step != 0 )
@@ -542,13 +595,17 @@ void Scene::handleEvent(SDL_Event& e)
             step = 0;
             xsp = 30;
             ysp = 34;
-            d = FRONT;
+            d = BEHIND;
         }
     }   
 
     if ((e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q && e.key.repeat == 0) || (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && !pixelmotionn) && step != 0) 
     {
-        shoot(rand() % 9, hero.mPosX, hero.mPosY, 48*6, 0, hero.blockmap, true, false, false, hero.datas.power);
+        if (bulletcooldown.gettime() > 100)
+        {
+            shoot(rand() % 7, hero.mPosX, hero.mPosY, 48*6, 0, hero.blockmap, true, false, false, hero.datas.power);
+            bulletcooldown.setstarttime();
+        }
     }
 
     else if ( scene == GAME_OVER )
@@ -561,7 +618,7 @@ void Scene::handleEvent(SDL_Event& e)
             ifstream file("save/save.txt");
             if (file >> sceneValue) 
             {
-                file >> hero.mPosX >> hero.mPosY >> di >> cha1 >> cha2 >> cha3 >> cha4 >> hero.datas.health;
+                file >> hero.mPosX >> hero.mPosY >> di >> cha1 >> cha2 >> cha3 >> cha4 >> hero.datas.health >> cha2quiz;
                 xsp = floor((hero.mPosX+48)/48);
                 ysp = floor((hero.mPosY+48)/48);
                 d = static_cast<Direction>(di);
@@ -597,7 +654,7 @@ void Scene::handleEvent(SDL_Event& e)
         hero.mVelX = 0;
         hero.mVelY = 0;
         ofstream file("save/save.txt");
-        file << scene << " " << floor(hero.mPosX/48)*48 << " " << floor(hero.mPosY/48)*48 << " " << hero.direction << " " << cha1 << " " << cha2<< " " << cha3<< " " << cha4 << " " << hero.datas.health;
+        file << scene << " " << floor(hero.mPosX/48)*48 << " " << floor(hero.mPosY/48)*48 << " " << hero.direction << " " << cha1 << " " << cha2<< " " << cha3<< " " << cha4 << " " << hero.datas.health << " " << cha2quiz;
         file.close();
         step = 0;
         scene = MENU;
@@ -999,10 +1056,10 @@ void Scene::logicScene()
         else if (hero.blockevent == 952 && !cha2)
         {
             hero.stop();
-            scene = CHALLENGE_1;
+            scene = CHALLENGE_2;
             step = 0;
-            xsp = 64;
-            ysp = 160;
+            xsp = 20;
+            ysp = 37;
             d = FRONT;
         }
         else if (hero.blockevent == 953 && !cha3)
@@ -1035,10 +1092,32 @@ void Scene::logicScene()
             hero.stop();
             scene = MAP_GARDEN;
             step = 0;
-            xsp = 19;
-            ysp = 35;
-            d = FRONT;
+            xsp = 8;
+            ysp = 13;
+            d = BEHIND;
         }
+    }
+
+    else if ( scene == CHALLENGE_2 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 30;
+            ysp = 13;
+            d = BEHIND;
+        }
+
+        if (hero.blockevent == 801) 
+        {
+            SDL_StartTextInput();
+        }
+        else SDL_StopTextInput();
     }
 
     else if ( scene == CHALLENGE_3 && step != 0 )
@@ -1051,8 +1130,8 @@ void Scene::logicScene()
             hero.stop();
             scene = MAP_GARDEN;
             step = 0;
-            xsp = 19;
-            ysp = 35;
+            xsp = 30;
+            ysp = 33;
             d = FRONT;
         }
         if (hero.blockevent == 801) 
@@ -1231,6 +1310,7 @@ void Scene::logicScene()
     if(step == 0 && !bullets1.empty()) bullets1.clear();
     if(step == 0 && !bullets2.empty()) bullets2.clear();
     srand(chrono::high_resolution_clock::now().time_since_epoch().count());
+    //cout << bullets1.size() << " " << bullets2.size() << endl;
     if(hero.datas.health < 0)
     {
         hero.stop();
@@ -1929,6 +2009,76 @@ void Scene::renderScene()
         }
     }
 
+    else if ( scene == CHALLENGE_2 )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&challenge2, "classroom.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(xsp,ysp);
+            hero.direction = d;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            challenge2.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            challenge2.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+
+            if (cha2quiz == 1)
+            {
+                SDL_Rect custom;
+                custom.h = 6*48;
+                custom.w = static_cast<int>( (float)quiz1.mw / quiz1.mh * custom.h );
+                custom.x = (936 - custom.w/2)-hero.camera.x;
+                custom.y = (576 - custom.h/2)-hero.camera.y;
+                quiz1.render(0, 0, &custom);
+            }
+            else if (cha2quiz == 2)
+            {
+                SDL_Rect custom;
+                custom.w = 16*48;
+                custom.h = static_cast<int>( (float)quiz2.mh / quiz2.mw * custom.w );
+                custom.x = (936 - custom.w/2)-hero.camera.x;
+                custom.y = (576 - custom.h/2)-hero.camera.y;
+                quiz2.render(0, 0, &custom);
+            }
+            else if (cha2quiz == 3)
+            {
+                SDL_Rect custom;
+                custom.w = 16*48;
+                custom.h = static_cast<int>( (float)quiz3.mh / quiz3.mw * custom.w );
+                custom.x = (936 - custom.w/2)-hero.camera.x;
+                custom.y = (576 - custom.h/2)-hero.camera.y;
+                quiz3.render(0, 0, &custom);
+            }
+            SDL_Rect custom;
+            custom.h = 48;
+            custom.w = static_cast<int>( (float)answer.mw / answer.mh * custom.h );
+            custom.x = (936 - custom.w/2)-hero.camera.x;
+            custom.y = 744 - hero.camera.y;
+            answer.render(0, 0, &custom);
+
+            if (!quizt.empty())
+            {
+                SDL_Color textColor = { 255, 255, 255, 255 };
+                text.loadFromRenderedText( quizt, textColor, gArial );
+                custom.h = 36;
+                custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
+                custom.x = 1025 - hero.camera.x;
+                custom.y = 750 - hero.camera.y;
+                text.render(0, 0, &custom);
+            }
+        }
+    }
+
     else if ( scene == CHALLENGE_3 )
     {
         if (step==0)
@@ -2004,7 +2154,7 @@ void Scene::renderScene()
         SDL_Rect custom;
         custom.h = SCREEN_HEIGHT / 25;
         custom.w = static_cast<int>( (float)text.mw / text.mh * custom.h );
-        custom.x = SCREEN_WIDTH - text.mw;
+        custom.x = SCREEN_WIDTH - custom.w;
         custom.y = 0;
         text.render(0, 0, &custom);
     }
@@ -2097,6 +2247,7 @@ void Scene::free()
     mapg1.free();
     mapg2.free();
     challenge1.free();
+    challenge2.free();
     challenge3.free();
     dark.free();
     dimension2.free();
@@ -2110,6 +2261,10 @@ void Scene::free()
     ske.free();
     gameovervn.free();
     gameovereng.free();
+    quiz1.free();
+    quiz2.free();
+    quiz3.free();
+    answer.free();
     buttons.clear();
     gWindow.free();
     SDL_DestroyRenderer( gRenderer );
@@ -2150,6 +2305,7 @@ void loadMedia()
     mapg1.loadFromFile( "assets/texture/map/mgarden.png" );
     mapg2.loadFromFile( "assets/texture/map/mgarden2.png" );
     challenge1.loadFromFile( "assets/texture/map/maploz.png" );
+    challenge2.loadFromFile( "assets/texture/map/classroom.png" );
     challenge3.loadFromFile( "assets/texture/map/cha3.png" );
     dark.loadFromFile( "assets/texture/img/transparent3.png" );
     dimension2.loadFromFile( "assets/texture/effect/dimension2.png" );
@@ -2171,6 +2327,10 @@ void loadMedia()
     ske.loadFromFile( "assets/texture/img/k2.png" );
     gameovervn.loadFromFile( "assets/texture/img/gameover1.png" );
     gameovereng.loadFromFile( "assets/texture/img/gameover2.png" );
+    quiz1.loadFromFile( "assets/texture/img/quiz1.png" );
+    quiz2.loadFromFile( "assets/texture/img/quiz2.png" );
+    quiz3.loadFromFile( "assets/texture/img/quiz3.png" );
+    answer.loadFromFile( "assets/texture/img/answer.png" );
 
     sfxsound[0] = Mix_LoadWAV("assets/sound/fire sfx.wav");
     sfxsound[1] = Mix_LoadWAV("assets/sound/fire explosion sfx.wav");
@@ -2216,6 +2376,7 @@ void close()
     mapg1.free();
     mapg2.free();
     challenge1.free();
+    challenge2.free();
     challenge3.free();
     dark.free();
     dimension2.free();
@@ -2229,7 +2390,10 @@ void close()
     ske.free();
     gameovervn.free();
     gameovereng.free();
-
+    quiz1.free();
+    quiz2.free();
+    quiz3.free();
+    answer.free();
 
     gWindow.free();
 
