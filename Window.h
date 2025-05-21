@@ -45,7 +45,7 @@ void Window::init()
 	IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
 	TTF_Init();
 	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
-    Mix_AllocateChannels(100);
+    Mix_AllocateChannels(50);
     SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" );
 	mWindow = SDL_CreateWindow( "Demon Castle: Last Fight", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE );
 	mWidth = SCREEN_WIDTH;

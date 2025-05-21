@@ -40,6 +40,7 @@ enum Scenes
     CHALLENGE_3 = 15,
     CHALLENGE_4 = 16,
     GAME_OVER = 17,
+    GAME_END = 18,
 };
 
 class Scene
@@ -57,9 +58,10 @@ class Scene
         bool fadein(Texture* tex); //hiện dần
         bool fadeout(Texture* tex); //mờ dần
         void shoot(int special, int x, int y, int v, double angle, vector<vector<int>> bm, bool ally, bool anglelockk, bool dis, int dam);
+        void subb(string bb, int time);
         Scenes scene;
     private:
-        int step, stepf;
+        int step, stepf, stept;
         Uint8 alpha;
         vector<Button> buttons;
         int music_vollume;
@@ -74,6 +76,15 @@ class Scene
         Bullet b3;
         bool cha1, cha2, cha3, cha4;
         int cha2quiz;
+        bool chatc42;
+        bool chatt1;
+        bool chata23;
+        bool chatc1;
+        bool chatc2;
+        bool chatc3;
+        bool chatc4;
+
+        bool nexts, subon;
 };
 
 int SCREEN_WIDTH = 720;
@@ -99,6 +110,7 @@ Texture transparent2;
 Texture tick;
 Texture newgame;
 Texture hero2;
+Texture boss2;
 Texture mapt1;
 Texture mapt2;
 Texture mapa1;
@@ -110,6 +122,7 @@ Texture mapg2;
 Texture challenge1;
 Texture challenge2;
 Texture challenge3;
+Texture challenge4;
 Texture dark;
 Texture dimension2;
 Texture gate2;
@@ -126,7 +139,13 @@ Texture quiz1;
 Texture quiz2;
 Texture quiz3;
 Texture answer;
+Texture tele;
+Texture boss3;
+Texture boss32;
+Texture sub;
+Texture thank;
 Characters hero;
+Characters boss;
 Characters dimension;
 Characters gate;
 SDL_Rect menuclips[ 4 ];
@@ -134,6 +153,7 @@ Timer time1;
 Timer bullett;
 Timer bulletcooldown;
 Timer fpscc;
+Timer subt;
 Window gWindow;
 Mix_Chunk* sfxsound[7];
 
@@ -145,12 +165,17 @@ bool fpm;
 bool vnm;
 int frame = 0;
 int frame2 = 0;
+int cc = 0;
+int cc2 = 0;
+int texttime;
 string fpscustom = "100";
 string ff = "100";
 string quizt ="";
 bool a = false;
 double newgamey = 1;
 bool smooth_camera = false;
+bool cha4s = false;
+
 
 extern bool quit;
 extern bool vsync2;
@@ -164,11 +189,34 @@ void Scene::shoot(int special, int x, int y, int v, double angle, vector<vector<
     else bullets2.push_back(newBullet);
 }
 
+void Scene::subb(string bb, int time)
+{
+    subon = true;
+    texttime = time;
+    SDL_Rect custom;
+    custom.w = SCREEN_WIDTH * 19 / 20;
+    custom.h = static_cast<int>( (float)text.mh / text.mw * custom.w );
+    custom.x = (SCREEN_WIDTH - custom.w) / 2;
+    custom.y = (SCREEN_HEIGHT - custom.h) - custom.w / 20 ;
+    sub.render(0, 0, &custom);
+
+    string aa = bb;
+    SDL_Color textColor = { 0, 0, 0, 255 };
+    text.loadFromRenderedText( aa, textColor, gTimes );
+    SDL_Rect custom2;
+    custom2.w = SCREEN_WIDTH * 17 / 20;
+    custom2.h = static_cast<int>( (float)text.mh / text.mw * custom.w );
+    custom2.x = (SCREEN_WIDTH - custom2.w) / 2;
+    custom2.y = (SCREEN_HEIGHT - custom2.h) - custom.w / 20 * 2;
+    text.render(0, 0, &custom2);
+}
+
 Scene::Scene()
 {
     scene = START_MENU;
     step = 0;
     stepf = 0;
+    stept = 0;
     alpha = 0;
     music_vollume = 64;
     SFX_vollume = 32;
@@ -180,6 +228,18 @@ Scene::Scene()
     cha2 = false;
     cha3 = false;
     cha4 = false;
+
+    chatt1 = false;
+    chata23 = false;
+    chatc1 = false;
+    chatc2 = false;
+    chatc3 = false;
+    chatc4 = false;
+    chatc42 = false;
+
+    nexts = false;
+    subon = false;
+
     cha2quiz = 1;
     xsp = 41; //sảnh 1
     ysp = 43;
@@ -209,6 +269,7 @@ Scene::Scene()
     pixelmotionn = true;
     bullett.setstarttime();
     bulletcooldown.setstarttime();
+    subt.setstarttime();
 }
 
 Scene::~Scene()
@@ -546,7 +607,7 @@ void Scene::handleEvent(SDL_Event& e)
         else hero.motion(&e);
 
         if( e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_BACKSPACE && quizt.length() > 0) quizt.pop_back();
-        else if(e.type == SDL_TEXTINPUT) if (((e.text.text[0] >= '0' && e.text.text[0] <= '9') || e.text.text[0] <= '.')  && quizt.length() < 8) quizt += e.text.text;
+        else if(e.type == SDL_TEXTINPUT) if (((e.text.text[0] >= '0' && e.text.text[0] <= '9') || e.text.text[0] <= '.')  && quizt.length() < 7) quizt += e.text.text;
 
 
         if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN && SDL_IsTextInputActive() && quizt != "") 
@@ -599,9 +660,21 @@ void Scene::handleEvent(SDL_Event& e)
         }
     }   
 
-    if ((e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q && e.key.repeat == 0) || (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && !pixelmotionn) && step != 0) 
+    else if ( scene == CHALLENGE_4 && step != 0 )
     {
-        if (bulletcooldown.gettime() > 100)
+        if (pixelmotionn)
+        {
+            hero.motionpixel(&e);
+            hero.mousepixel(&e);
+        }
+        else hero.motion(&e);
+    }   
+
+    int x, y;
+    Uint32 mouseState = SDL_GetMouseState(&x, &y);
+    if ((e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q) || ((mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)) && !pixelmotionn) && step != 0 && scene >= MAP_T1 && scene <= CHALLENGE_4) 
+    {
+        if (bulletcooldown.gettime() > 250)
         {
             shoot(rand() % 7, hero.mPosX, hero.mPosY, 48*6, 0, hero.blockmap, true, false, false, hero.datas.power);
             bulletcooldown.setstarttime();
@@ -610,7 +683,7 @@ void Scene::handleEvent(SDL_Event& e)
 
     else if ( scene == GAME_OVER )
     {
-       if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN)
+       if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RETURN && step != 0)
        {
             step = 0;
             int sceneValue;
@@ -658,6 +731,15 @@ void Scene::handleEvent(SDL_Event& e)
         file.close();
         step = 0;
         scene = MENU;
+    }
+
+    if (subon)
+    {
+        if(e.type == SDL_KEYDOWN && subt.gettime() > texttime) 
+        {
+            nexts = true;
+            texttime = 0;
+        }
     }
 }   
 
@@ -1073,12 +1155,42 @@ void Scene::logicScene()
         }
         else if (hero.blockevent == 954 && !cha4)
         {
-            hero.stop();
-            scene = CHALLENGE_1;
-            step = 0;
-            xsp = 64;
-            ysp = 160;
-            d = FRONT;
+            if (!cha1)
+            {
+                hero.stop();
+                scene = CHALLENGE_1;
+                step = 0;
+                xsp = 64;
+                ysp = 160;
+                d = FRONT;
+            }
+            else if (!cha2)
+            {
+                hero.stop();
+                scene = CHALLENGE_2;
+                step = 0;
+                xsp = 20;
+                ysp = 37;
+                d = FRONT;
+            }
+            else if (!cha3)
+            {
+                hero.stop();
+                scene = CHALLENGE_3;
+                step = 0;
+                xsp = 5;
+                ysp = 83;
+                d = FRONT;
+            }
+            else
+            {
+                hero.stop();
+                scene = CHALLENGE_4;
+                step = 0;
+                xsp = 26;
+                ysp = 54;
+                d = FRONT;
+            }
         }
     }
 
@@ -1214,20 +1326,20 @@ void Scene::logicScene()
             if(rand() % 5 == 0) shoot(rand() % 2 + 7, 50 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
             if(rand() % 5 == 0) shoot(rand() % 2 + 7, 56 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
             if(rand() % 5 == 0) shoot(rand() % 2 + 7, 62 *48-48, 65 *48-48, 48*3, -90, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 60 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 54 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 48 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 42 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 36 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 30 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 24 *48-48, 48*5, 180, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 63 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 57 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 51 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 45 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 39 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 33 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
-            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 27 *48-48, 48*5, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 60 *48-48, 48*8, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 54 *48-48, 48*8, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 48 *48-48, 48*8, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 42 *48-48, 48*8, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 36 *48-48, 48*8, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 30 *48-48, 48*8, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 63 *48-48, 24 *48-48, 48*8, 180, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 63 *48-48, 48*8, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 57 *48-48, 48*8, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 51 *48-48, 48*8, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 45 *48-48, 48*8, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 39 *48-48, 48*8, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 33 *48-48, 48*8, 0, hero.blockmap, false, true, true, 25);
+            if(rand() % 15 == 0) shoot(rand() % 2 + 7, 80 *48-48, 27 *48-48, 48*8, 0, hero.blockmap, false, true, true, 25);
             if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 22 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
             if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 20 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
             if(rand() % 10 == 0) shoot(rand() % 2 + 7, 80 *48-48, 18 *48-48, 48*4, 0, hero.blockmap, false, true, true, 25);
@@ -1282,6 +1394,203 @@ void Scene::logicScene()
         }    
     }
 
+    else if ( scene == CHALLENGE_4 && step != 0 )
+    {
+        if (pixelmotionn) hero.movepixel();
+        else hero.move();
+
+        if (hero.blockevent == 901) 
+        {
+            hero.stop();
+            scene = MAP_GARDEN;
+            step = 0;
+            xsp = 8;
+            ysp = 33;
+            d = FRONT;
+        }
+
+        if (sqrt(pow( 1248 - ( hero.mPosX + hero.mWidth / 2 ), 2 ) + pow( 240 - ( hero.mPosY + hero.mHeight / 2 ), 2 )) < SCREEN_HEIGHT/2 && !chatc42) 
+        {
+            chatc42 = true;
+            stept = 3;
+            boss.a.setstarttime();
+            boss.b.setstarttime();
+            boss.bossskill.setstarttime();
+            boss.bosstele.setstarttime();
+            subt.setstarttime();
+        }
+    
+        if (cha4s)
+        {
+            boss.moveboss(hero.mPosX, hero.mPosY);
+            boss.skillboss();
+
+            double anglebh = atan2(( boss.mPosY - hero.mPosY ) , ( boss.mPosX - hero.mPosX )) * 180 / M_PI ;
+
+            if (boss.skillboss() == 0)
+            {
+                if (bullett.gettime() > 200)
+                {
+                    shoot(rand() % 2 + 7, boss.mPosX, boss.mPosY, 48*6, anglebh, boss.blockmap, false, true, false, 25);
+                    bullett.setstarttime();
+                }
+            }
+
+            else if (boss.skillboss() == 1)
+            {
+                for (int i = 0; i < 360; i += 3)
+                {
+                    shoot(8, boss.mPosX, boss.mPosY, 48*10, i, boss.blockmap, false, true, false, 30);
+                }
+                boss.skillonboss = false;
+                boss.skillonboss2 = false;
+            }
+
+            else if (boss.skillboss() == 2)
+            {
+                if (stepf==0)
+                {
+                    cc = -30;
+                    stepf = 1;
+                }
+                if (stepf == 1)
+                {
+                    if (bullett.gettime() > 50)
+                    {
+                        shoot(7, boss.mPosX, boss.mPosY, 48*6, anglebh + cc, boss.blockmap, false, true, false, 15);
+                        bullett.setstarttime();
+                        cc += 3;
+                    }
+                    if (cc==33) 
+                    {
+                        stepf = 2;
+                        cc = 27;
+                    }
+                }
+                if (stepf == 2)
+                {
+                    if (bullett.gettime() > 50)
+                    {
+                        shoot(7, boss.mPosX, boss.mPosY, 48*6, anglebh + cc, boss.blockmap, false, true, false, 15);
+                        bullett.setstarttime();
+                        cc -= 3;
+                    }
+                    if (cc==-33) 
+                    {
+                        stepf = 3;
+                        cc = -27;
+                    }
+                }
+                if (stepf == 3)
+                {
+                    if (bullett.gettime() > 50)
+                    {
+                        shoot(7, boss.mPosX, boss.mPosY, 48*6, anglebh + cc, boss.blockmap, false, true, false, 15);
+                        bullett.setstarttime();
+                        cc += 3;
+                    }
+                    if (cc==33) 
+                    {
+                        stepf = 4;
+                        cc = 27;
+                    }
+                }
+                if (stepf == 4)
+                {
+                    if (bullett.gettime() > 50)
+                    {
+                        shoot(7, boss.mPosX, boss.mPosY, 48*6, anglebh + cc, boss.blockmap, false, true, false, 15);
+                        bullett.setstarttime();
+                        cc -= 3;
+                    }
+                    if (cc==-33) 
+                    {
+                        stepf = 5;
+                        cc = -27;
+                    }
+                }
+                if (stepf == 5)
+                {
+                    if (bullett.gettime() > 50)
+                    {
+                        shoot(7, boss.mPosX, boss.mPosY, 48*6, anglebh + cc, boss.blockmap, false, true, false, 15);
+                        bullett.setstarttime();
+                        cc += 3;
+                    }
+                    if (cc==33) 
+                    {
+                        boss.skillonboss = false;
+                        boss.skillonboss2 = false;
+                        stepf = 0;
+                    }
+                }
+            }
+
+            else if (boss.skillboss() == 3)
+            {
+                if (stepf == 0)
+                {
+                    cc2 = 0;
+                    stepf = 1;
+                }
+                if (stepf == 1)
+                {
+                    int i = rand()%21 * 3 - 30;
+                    if (bullett.gettime() > 50)
+                    {
+                        shoot(rand() % 2 + 7, boss.mPosX, boss.mPosY, 48*8, anglebh + i, boss.blockmap, false, true, false, 20);
+                        bullett.setstarttime();
+                        i += 3;
+                        cc2 ++;
+                    }
+                    if (cc2 == 100)
+                    {
+                        stepf = 0;
+                        cc2 = 0;
+                        boss.skillonboss = false;
+                        boss.skillonboss2 = false;
+                    }
+                }
+            }
+
+            else if (boss.skillboss() == 4)
+            {
+                shoot(7, boss.mPosX+24, boss.mPosY, 48*15, anglebh, boss.blockmap, false, true, false, 25);
+                shoot(7, boss.mPosX, boss.mPosY+24, 48*15, anglebh, boss.blockmap, false, true, false, 25);
+                shoot(7, boss.mPosX+24, boss.mPosY+24, 48*15, anglebh, boss.blockmap, false, true, false, 25);
+                shoot(7, boss.mPosX-24, boss.mPosY, 48*15, anglebh, boss.blockmap, false, true, false, 25);
+                shoot(7, boss.mPosX, boss.mPosY-24, 48*15, anglebh, boss.blockmap, false, true, false, 25);
+                shoot(7, boss.mPosX-24, boss.mPosY-24, 48*15, anglebh, boss.blockmap, false, true, false, 25);
+                shoot(7, boss.mPosX+24, boss.mPosY-24, 48*15, anglebh, boss.blockmap, false, true, false, 25);
+                shoot(7, boss.mPosX-24, boss.mPosY+24, 48*15, anglebh, boss.blockmap, false, true, false, 25);
+                shoot(7, boss.mPosX, boss.mPosY, 48*12, anglebh, boss.blockmap, false, true, false, 25);
+                boss.skillonboss = false;
+                boss.skillonboss2 = false;
+            }
+
+            else if (boss.skillboss() == 5)
+            {
+                for (int i = -60; i <= 60; i ++)
+                {
+                    shoot(8, boss.mPosX, boss.mPosY, 48*4, anglebh +i, boss.blockmap, false, true, false, 40);
+                }
+                boss.skillonboss = false;
+                boss.skillonboss2 = false;
+            }
+        }
+        if (boss.datas.health <= 100)
+        {
+            boss.bossphase2 = true;
+        }
+        if (boss.datas.health <= 0)
+        {
+            hero.stop();
+            scene = GAME_END;
+            step = 0;
+        }
+    }
+
+    if(step == 0) stept = 0;
     if (step != 0)
     {
         for (auto& bullet : bullets2) 
@@ -1292,7 +1601,18 @@ void Scene::logicScene()
             {
                 hero.datas.health -= bullet.damage;
                 bullet.getdamage = true;
-                cout << hero.datas.health << endl;
+            }
+        }
+
+        for (auto& bullet : bullets1) 
+        if( sqrt( pow( boss.mPosX - bullet.mPosX , 2 ) + pow( boss.mPosY - bullet.mPosY, 2 ) ) < 24) 
+        {
+            bullet.collide = true;
+            if (!bullet.getdamage)
+            {
+                boss.datas.health -= bullet.damage;
+                bullet.getdamage = true;
+                boss.bosstelee();
             }
         }
 
@@ -1310,12 +1630,14 @@ void Scene::logicScene()
     if(step == 0 && !bullets1.empty()) bullets1.clear();
     if(step == 0 && !bullets2.empty()) bullets2.clear();
     srand(chrono::high_resolution_clock::now().time_since_epoch().count());
-    //cout << bullets1.size() << " " << bullets2.size() << endl;
     if(hero.datas.health < 0)
     {
         hero.stop();
+        SDL_StopTextInput();
         scene = GAME_OVER;
         step = 0;
+        bullets1.clear();
+        bullets2.clear();
     }
 }
 
@@ -1753,6 +2075,7 @@ void Scene::renderScene()
             hero.animated(hero.mx_camx, hero.my_camy);
 
             if (fadeout(&black)) step = 1;
+            
         }
         else if (step == 1)
         {
@@ -1760,6 +2083,25 @@ void Scene::renderScene()
             SDL_Rect cameraRect = hero.camxy();
             mapt1.render(0, 0, nullptr, &cameraRect);
             hero.animated(hero.mx_camx, hero.my_camy);
+
+            if(stept == 0 && !chatt1)
+            {
+                stept = 1;
+                subt.setstarttime();
+                chatt1 = true;
+            }
+            if(stept == 1)
+            {
+                if (vn) subb( "[Zex] Cuối cùng cũng tới được đây! Ta sẽ đi thám thính địa hình trước khi tiêu diệt tên ma vương đó!", 2000 );
+                else subb( "[Zex] Finally here! I'll go scout the terrain before destroying that demon king!" , 2000);
+
+                if (nexts)
+                {
+                    stept = 2;
+                    nexts = false;
+                    subon = false;
+                }
+            }
 
             if (hero.blockevent == 801)
             {
@@ -1863,6 +2205,25 @@ void Scene::renderScene()
             SDL_Rect cameraRect = hero.camxy();
             mapa2.render(0, 0, nullptr, &cameraRect);
             hero.animated(hero.mx_camx, hero.my_camy);
+
+            if(stept == 0 && !chata23)
+            {
+                stept = 1;
+                subt.setstarttime();
+                chata23 = true;
+            }
+            if(stept == 1)
+            {
+                if (vn) subb( "[Zex] Má lâu đài hay mê cung vậy!? Tk nào thiết kế cái này chắc có vấn đề rồi :V ", 2000 );
+                else subb( "[Zex] Castle or maze!? The design definitely has problems :V" , 2000);
+
+                if (nexts)
+                {
+                    stept = 2;
+                    nexts = false;
+                    subon = false;
+                }
+            }
         }
     }
 
@@ -1888,6 +2249,25 @@ void Scene::renderScene()
             SDL_Rect cameraRect = hero.camxy();
             mapa3.render(0, 0, nullptr, &cameraRect);
             hero.animated(hero.mx_camx, hero.my_camy);
+
+            if(stept == 0 && !chata23)
+            {
+                stept = 1;
+                subt.setstarttime();
+                chata23 = true;
+            }
+            if(stept == 1)
+            {
+                if (vn) subb( "[Zex] Má lâu đài hay mê cung vậy!? Tk nào thiết kế cái này chắc có vấn đề rồi :V ", 2000 );
+                else subb( "[Zex] Castle or maze!? The design definitely has problems :V" , 2000);
+
+                if (nexts)
+                {
+                    stept = 2;
+                    nexts = false;
+                    subon = false;
+                }
+            }
         }
     }
 
@@ -2006,6 +2386,25 @@ void Scene::renderScene()
             custom.x = hero.mx_camx - dark.mw/2 + hero.mWidth/2;
             custom.y = hero.my_camy - dark.mh/2 + hero.mHeight/2;
             dark.render( 0, 0, &custom);
+
+            if(stept == 0 && !chatc1)
+            {
+                stept = 1;
+                subt.setstarttime();
+                chatc1 = true;
+            }
+            if(stept == 1)
+            {
+                if (vn) subb( "[Zex] Thiệt luôn !? Này là mê cung rồi còn gì nữa :V Thôi cố lấy đá quý rồi cút khỏi đây thôi!", 2000 );
+                else subb( "[Zex] Seriously!? This is a maze, isn't it? :V Let's try to get the crystal and get out of here!" , 2000);
+
+                if (nexts)
+                {
+                    stept = 2;
+                    nexts = false;
+                    subon = false;
+                }
+            }
         }
     }
 
@@ -2031,6 +2430,25 @@ void Scene::renderScene()
             SDL_Rect cameraRect = hero.camxy();
             challenge2.render(0, 0, nullptr, &cameraRect);
             hero.animated(hero.mx_camx, hero.my_camy);
+
+            if(stept == 0 && !chatc2)
+            {
+                stept = 1;
+                subt.setstarttime();
+                chatc2 = true;
+            }
+            if(stept == 1)
+            {
+                if (vn) subb( "[Zex] Tầm này mà vẫn phải làm bài tập mới qua được ải á? T là anh hùng chứ có phải học sinh đâu, tưởng isekai thì khỏi phải làm bài chứ...", 2000 );
+                else subb( "[Zex] At this point, I still have to do homework to pass the level? I'm a hero, not a student. I thought I wouldn't have to do homework in isekai..." , 2000);
+
+                if (nexts)
+                {
+                    stept = 2;
+                    nexts = false;
+                    subon = false;
+                }
+            }
 
             if (cha2quiz == 1)
             {
@@ -2102,13 +2520,311 @@ void Scene::renderScene()
             challenge3.render(0, 0, nullptr, &cameraRect);
             crystalb.render(35*48 - hero.camera.x, 42*48 - hero.camera.y);
             hero.animated(hero.mx_camx, hero.my_camy);
+
+            if(stept == 0 && !chatc3)
+            {
+                stept = 1;
+                subt.setstarttime();
+                chatc3 = true;
+            }
+            if(stept == 1)
+            {
+                if (vn) subb( "[Zex] Ồi ôi cái méo gì đây!? Mà thôi lâu đài quỷ vương thì phải có bẫy chứ, nhưng này thì hơi quá rồi...", 2000 );
+                else subb( "[Zex] What the hell is this!? Well, the demon king's castle must have traps, but this is going a bit too far..." , 2000);
+
+                if (nexts)
+                {
+                    stept = 2;
+                    nexts = false;
+                    subon = false;
+                }
+            }
+        }
+    }
+
+    else if ( scene == CHALLENGE_4 )
+    {
+        if (step==0)
+        {
+            hero.getmapxy(&challenge4, "last.txt");
+            hero.addtexture(&hero2, 3, 4, 6);
+            hero.startpoint(26,54);
+            //hero.startpoint(26,12);
+            hero.direction = FRONT;
+            hero.datas.health = 1000;
+
+            boss.getmapxy(&challenge4, "last.txt");
+            boss.addtexture(&boss2, 3, 8, 6);
+            boss.addtextureeffectboss(&tele);
+            boss.startpoint(26,6);
+            boss.datas.speed = 4*48;
+            boss.direction = BEHIND;
+
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            challenge4.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+            boss.animatedboss(round(boss.mPosX - cameraRect.x), round(boss.mPosY - cameraRect.y));
+
+            if (fadeout(&black)) step = 1;
+        }
+        else if (step == 1)
+        {
+            hero.cameraxy();
+            SDL_Rect cameraRect = hero.camxy();
+            challenge4.render(0, 0, nullptr, &cameraRect);
+            hero.animated(hero.mx_camx, hero.my_camy);
+            boss.getcamxy(cameraRect.x, cameraRect.y);
+            boss.animatedboss(round(boss.mPosX - cameraRect.x), round(boss.mPosY - cameraRect.y));
+
+            if(stept == 0 && !chatc4)
+            {
+                stept = 1;
+                subt.setstarttime();
+                chatc4 = true;
+            }
+            if(stept == 1)
+            {
+                if (vn) subb( "[Zex] Phòng này coi bộ cũng to đấy, chắc trùm cuối đây mà :D", 2000 );
+                else subb( "[Zex] This room looks pretty big, this must be the final boss :D" , 2000);
+
+                if (nexts)
+                {
+                    stept = 2;
+                    nexts = false;
+                    subon = false;
+                }
+            }
+            if (stept == 3)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Zex] Ơ cậu... cậu sao lại ở đây? Bộ dạng kia là sao vậy chứ? giải thích cho tớ nghe coi?", 2000 );
+                else subb( "[Zex] Hey you... why are you here? What's with that look? Explain it to me?" , 2000);
+
+                if (subt.gettime() > 2000)
+                {
+                    stept = 4;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 4)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Law] Hừ, rất vui được gặp lại mày! Tại mày mà tao mất tất cả. Gia tộc rời bỏ tao, mọi người xung quanh cũng xa lánh tao", 2000 );
+                else subb( "[Law] Humph, nice to see you again! Because of you, I lost everything. My family abandoned me, and everyone around me shunned me." , 2000);
+
+                if (subt.gettime() > 3000)
+                {
+                    stept = 5;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 5)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Zex] Nhưng đó là tại vì...", 2500 );
+                else subb( "[Zex] But that's because..." , 2500);
+
+                if (subt.gettime() > 500)
+                {
+                    stept = 6;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 6)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Law] Tại vì? Chính mày tự nhiên xuất hiện trong cuộc đời tao, bạn gái tao cũng đi theo mày. Thay vì làm 1 anh hùng thì m lại gây dựng đế chế harem cho bản thân mày", 2000 );
+                else subb( "[Law] Why? You suddenly appeared in my life, and my girlfriend followed you. Instead of being a hero, you built a harem empire for yourself." , 2000);
+
+                if (subt.gettime() > 4000)
+                {
+                    stept = 7;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 7)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Law] Kế hoạch của tao cũng đi tong chỉ vì mày xuất hiện, thằng dị giới, giờ tao sẽ trả thù mối thù này!", 2000 );
+                else subb( "[Law] My plan was ruined just because you appeared, you alien, now I will take revenge for this grudge!" , 2000);
+
+                if (subt.gettime() > 2000)
+                {
+                    stept = 8;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 8)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Zex] Tôi xin lỗi vì đã làm vậy nhưng việc cậu đang làm như này là rất sai trái. Tại sao lại phải bắt tay với ma vương chứ?", 2000 );
+                else subb( "[Zex] I'm sorry for doing this but what you're doing is wrong. Why join hands with the devil?" , 2000);
+
+                if (subt.gettime() > 2000)
+                {
+                    stept = 9;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 9)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Law] Thôi lảm nhảm về chính nghĩa đi thằng đạo đức giả, chết đi!!!", 2000 );
+                else subb( "[Law] Stop talking nonsense about justice, you hypocrite, die!!!" , 2000);
+
+                if (subt.gettime() > 1000)
+                {
+                    stept = 10;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 10)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Zex] Có vẻ tôi không còn lựa chọn khác rồi", 2000 );
+                else subb( "[Zex] Looks like I have no other choice." , 2000);
+
+                if (subt.gettime() > 1000)
+                {
+                    stept = 11;
+                    nexts = false;
+                    subon = false;
+                    cha4s = true;
+                }
+            }           
+
+            if (cha4s)
+            {
+                SDL_Rect custom;
+                custom.w = SCREEN_WIDTH * 2 / 3;
+                custom.h = static_cast<int>( (float)boss3.mh / boss3.mw * custom.w );
+                custom.x = (SCREEN_WIDTH - custom.w)/2;
+                custom.y = 0;
+                boss3.render(0, 0, &custom);
+
+                SDL_Rect custom2;
+                custom2.h = custom.h * 2 / 5;
+                custom2.w = (custom.w * 365 / 416) * boss.datas.health / 1000 ;
+                custom2.x = custom.w * 15 / 208 + custom.x;
+                custom2.y = custom.h * 23 / 84 + custom.y ;
+
+                boss32.render(0, 0, &custom2);
+                boss3.render(0, 0, &custom);
+            }
         }
     }
 
     else if ( scene == GAME_OVER )
     {
-        if (vn) gameovervn.render2( 0, 0, nullptr, nullptr, true );
-        else gameovereng.render2( 0, 0, nullptr, nullptr, true );
+        if (step==0)
+        { 
+            step = 1;
+            hero.datas.health = 1;
+        }
+        else if (step == 1)
+        {
+            if (vn) gameovervn.render2( 0, 0, nullptr, nullptr, true );
+            else gameovereng.render2( 0, 0, nullptr, nullptr, true );
+        }
+    }
+
+    else if ( scene == GAME_END )
+    {
+        if (step==0)
+        {
+            step = 1;
+        }
+        else if (step ==1)
+        {
+            thank.render( 0, 0, nullptr, nullptr, true );
+            /*
+            if(stept == 0)
+            {
+                stept = 1;
+                subt.setstarttime();
+            }
+            if(stept == 1)
+            {
+                if (vn) subb( "[Master] Có vẻ là cuộc hành trình của Zex đã kết thúc tại đây! Ý tôi là Zex sẽ phải hoãn thám thính lại và trở về rồi", 2000 );
+                else subb( "[Master] Looks like Zex's journey ends here! I mean Zex will have to postpone his reconnaissance and return." , 2000);
+
+                if (subt.gettime() > 3000)
+                {
+                    stept = 2;
+                    nexts = false;
+                    subon = false;
+                }
+            }
+            if (stept == 2)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Master] Và trò chơi cũng kết thúc tại đây :D Cảm ơn vì đã chơi!", 2000 );
+                else subb( "[Master] And the game ends here :D Thanks for playing!" , 2000);
+
+                if (subt.gettime() > 3000)
+                {
+                    stept = 3;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 3)
+            {
+                hero.stop();
+                bullets1.clear();
+                bullets2.clear();
+                if (vn) subb( "[Master] À tôi không ngờ là phá đảo được luôn đấy, hahah!", 2000 );
+                else subb( "[Master] Oh, I didn't expect to clear the game, hahah!" , 2000);
+
+                if (subt.gettime() > 3000)
+                {
+                    stept = 4;
+                    nexts = false;
+                    subon = false;
+                    subt.setstarttime();
+                }
+            }
+            if (stept == 4)
+            {
+                thank.render( 0, 0, nullptr, nullptr, true );
+            }
+                */
+
+        }
     }
 
     if (step != 0 && !bullets1.empty())
@@ -2118,7 +2834,7 @@ void Scene::renderScene()
     }
     if (step != 0 && !bullets2.empty())
     {
-        for (auto& bullet : bullets2) bullet.active(hero.mPosX, hero.mPosY, hero.camera.x, hero.camera.y);
+        for (auto& bullet : bullets2) bullet.active(boss.mPosX, boss.mPosY, hero.camera.x, hero.camera.y);
         bullets2.erase (remove_if(bullets2.begin(), bullets2.end(), [](Bullet& b) { return !b.start; }), bullets2.end());
     }
     
@@ -2238,6 +2954,7 @@ void Scene::free()
     text.free();
     newgame.free();
     hero2.free();
+    boss2.free();
     mapt1.free();
     mapt2.free();
     mapa1.free();
@@ -2249,6 +2966,7 @@ void Scene::free()
     challenge1.free();
     challenge2.free();
     challenge3.free();
+    challenge4.free();
     dark.free();
     dimension2.free();
     gate2.free();
@@ -2267,6 +2985,10 @@ void Scene::free()
     answer.free();
     buttons.clear();
     gWindow.free();
+    tele.free();
+    boss3.free();
+    boss32.free();
+    sub.free();
     SDL_DestroyRenderer( gRenderer );
     TTF_CloseFont( gTimes );
     TTF_CloseFont( gArial );
@@ -2296,6 +3018,7 @@ void loadMedia()
     tick.loadFromFile( "assets/texture/img/tick.png" );
     newgame.loadFromFile( "assets/texture/img/new game vn.png" );
     hero2.loadFromFile( "assets/texture/characters/hero.png" );
+    boss2.loadFromFile( "assets/texture/characters/boss.png" );
     mapt1.loadFromFile( "assets/texture/map/sanh1.png" );
     mapt2.loadFromFile( "assets/texture/map/sanh2.png" );
     mapa1.loadFromFile( "assets/texture/map/m1.png" );
@@ -2307,6 +3030,7 @@ void loadMedia()
     challenge1.loadFromFile( "assets/texture/map/maploz.png" );
     challenge2.loadFromFile( "assets/texture/map/classroom.png" );
     challenge3.loadFromFile( "assets/texture/map/cha3.png" );
+    challenge4.loadFromFile( "assets/texture/map/last.png" );
     dark.loadFromFile( "assets/texture/img/transparent3.png" );
     dimension2.loadFromFile( "assets/texture/effect/dimension2.png" );
     gate2.loadFromFile( "assets/texture/map/gate.png" );
@@ -2331,6 +3055,11 @@ void loadMedia()
     quiz2.loadFromFile( "assets/texture/img/quiz2.png" );
     quiz3.loadFromFile( "assets/texture/img/quiz3.png" );
     answer.loadFromFile( "assets/texture/img/answer.png" );
+    tele.loadFromFile( "assets/texture/effect/tele.png" );
+    boss3.loadFromFile( "assets/texture/img/boss.png" );
+    boss32.loadFromFile( "assets/texture/img/health.png" );
+    sub.loadFromFile( "assets/texture/img/sub.png" );
+    thank.loadFromFile( "assets/texture/img/thank.jpg" );
 
     sfxsound[0] = Mix_LoadWAV("assets/sound/fire sfx.wav");
     sfxsound[1] = Mix_LoadWAV("assets/sound/fire explosion sfx.wav");
@@ -2367,6 +3096,7 @@ void close()
     text.free();
     newgame.free();
     hero2.free();
+    boss2.free();
     mapt1.free();
     mapt2.free();
     mapa1.free();
@@ -2378,6 +3108,7 @@ void close()
     challenge1.free();
     challenge2.free();
     challenge3.free();
+    challenge4.free();
     dark.free();
     dimension2.free();
     gate2.free();
@@ -2394,6 +3125,10 @@ void close()
     quiz2.free();
     quiz3.free();
     answer.free();
+    tele.free();
+    boss3.free();
+    boss32.free();
+    sub.free();
 
     gWindow.free();
 

@@ -98,8 +98,10 @@ void Texture::loadFromFile( string path, bool ColorKey, Uint8 r, Uint8 g, Uint8 
 void Texture::loadFromRenderedText( string textureText, SDL_Color textColor, TTF_Font* gfont )
 {
     free();
+	int maxWidth = SCREEN_WIDTH * 0.8;
 
-    SDL_Surface* textSurface = TTF_RenderUTF8_Blended( gfont, textureText.c_str(), textColor );
+    //SDL_Surface* textSurface = TTF_RenderUTF8_Blended( gfont, textureText.c_str(), textColor );
+	SDL_Surface* textSurface = TTF_RenderUTF8_Blended_Wrapped(gfont, textureText.c_str(), textColor, maxWidth);
 
     mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
      

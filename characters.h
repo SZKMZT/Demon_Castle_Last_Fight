@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstdlib>
+#include <ctime>
 #include "Timer.h"
 using namespace std;
 
@@ -67,34 +69,61 @@ class Characters
         double mPosX, mPosY;
         double mVelX, mVelY;
         bool motionp;
-        bool b1; //b1: khi dừng lại sẽ cho nhân vật animation cho đến khi tới animation dừng(tăng mượt)
+        bool b1; //b1: khi dừng lại sẽ cho nhân vật animation cho đến khi tới animation dừng(tăng mượt); true: đang bước đi, false: chạy cho đến khi tới hoạt ảnh dừng
         bool m1; // khóa kiểu di chuyển từng pixel (dùng nút)
         bool m2; // khóa kiểu di chuyển dài, tự di chuyển (dùng chuột) 
         //motionp: khi di chuyển kiểu pixel, ngay khi di chuyển, thay đổi mVelX, mVelY thì khóa chức năng để nhân vật đi tới điểm tới rồi mới trả lại quyền, tránh tốc độ bị nhân lên quá nhiều hay ảnh hưởng tới quá trình tự động di chuyển
         //m1: khi mdi chuyển kiểu pixel, sử dụng chuột để định hướng nhân vật tới 1 điểm mà cần di chuyển nhiều ô, m1 sẽ khóa chức năng đi từng ô và kích hoạt bằng phím để quá trình tự động hóa. Nhân vật sẽ đi  từng ô một, 
         //Và m2 sẽ giúp chia nhỏ các bước di chuyển. Mỗi khi di chuyển từng ô xong thì m2 sẽ mở ra giúp tự động hóa tìm đường tiếp theo, chọn ra hướng di chuyển, thay đổi mVelX, mVelY và khóa lại.
         //b1: khi nhân vật di chuyển, sẽ có hoạt ảnh di chuyển nhưng vấn đề xảy ra, khi dừng lại và di chuyển (di chuyển kiểu pixel rất dễ nhận ra), nhân vật bị giật giật, lỗi là do hoạt ảnh chưa tiếp nối nhau mà bị đứt quãng. Vậy nên b1 để giúp nhân vật chuyển động hết hoạt ảnh tới hoạt ảnh dừng thì thôi.
-    private:
+
+        void moveboss(double x, double y);
+        int skillboss();
+        void animatedboss(int mx, int my);
+        void addtextureeffectboss(Texture* texture);
+        void getcamxy(double x, double y);
+        double distanceboss;
+        bool effects;
+        bool skillonboss, skillonboss2; // skillonboss: khi bật skill, gửi tín hiệu để kích hoạt skill (1 lần); skillonboss2: để reset lại time cho đến khi skill hết tác dụng
+        Timer a, b; // boss di chuyển chéo.
+        Timer bosstele;
+        Timer bossskill; 
+        Timer regen;
+        int skill;
+        bool bossphase2;
+        void bosstelee();
+
+        private:
         Texture* mTexture;
+        Texture* eTexture;
         vector<SDL_Rect> clipss;
+        vector<SDL_Rect> clipbf;
         int framerate;
-        int cframe; //hoạt ảnh nhân vật, dùng để chuyển cảnh di chuyển ô. cframe kiểu khung hình hiện tại mà nhân vật đang sở hữu
-        double camx, camy;
+        int cframe, eframe; //hoạt ảnh nhân vật, dùng để chuyển cảnh di chuyển ô. cframe kiểu khung hình hiện tại mà nhân vật đang sở hữu
+        double camx, camy; // tọa độ trung tâm camera
         double camvx, camvy;
+        double camx2, camy2; // tọa độ camera
         int mapx, mapy;
         Timer speedrender;
         Uint32 lasttime;
         Uint32 lasttime2;
+        Uint32 lasttimea;
+        Uint32 lasttimeb;
+        Uint32 lasttimee;
+        Uint32 bossskillc;
+        Uint32 bosstelec;
+        Uint32 bossregen;
         double deltatime;
         int movepx, movepy; //đích đến kiểu di chuyển pixel (từng ô)
         int movepxe, movepye; //đích đến kiểu di chuyển pixel (nhiều ô), tạo nhiều mốc di chuyển bằng movepx, movepy
+        double xc, yc, xc2, yc2; //tele effect cho boss
 };
 
 Characters::Characters(Texture* texture)
 {
     mTexture = texture;
     datas.health = 1000;
-    datas.power = 20;
+    datas.power = 25;
     datas.speed = 4*48;
     mVelX = 0;
     mVelY = 0;
@@ -104,6 +133,7 @@ Characters::Characters(Texture* texture)
     mHeight = 0;
     framerate = 0;
     cframe = 1;
+    eframe = 0;
     direction = FRONT;
     camera.x = 0; 
     camera.y = 0;
@@ -117,7 +147,12 @@ Characters::Characters(Texture* texture)
     mapy = 0;
     lasttime = 0;
     lasttime2 = 0;
+    lasttimee = 0;
     deltatime = speedrender.getdeltatime();
+    a.setstarttime();
+    b.setstarttime();
+    bossskill.setstarttime();
+    bosstele.setstarttime();
     mx_camx = 0;
     my_camy = 0;
     blockevent = 0;
@@ -131,6 +166,12 @@ Characters::Characters(Texture* texture)
     m2 = false;
     mapxm = 0;
     mapym = 0;
+    effects = false;
+    skillonboss = false;
+    skillonboss2 = false;
+    skill = 0;
+    srand(time(0));
+    bossphase2 = false;
 }
 
 void Characters::addtexture(Texture* texture, int w, int h, int f)
@@ -819,3 +860,357 @@ void Characters::animatedeffect(int mx, int my, int sf, int ef, int scale)
         mTexture->render(mx, my, &custom, &clipss[cframe+sf-1]);
     }
 }
+
+void Characters::moveboss(double x, double y)
+{
+    lasttimea = a.gettime();
+    lasttimeb = b.gettime();
+    deltatime = speedrender.getdeltatime();
+    bosstelec = bosstele.gettime(); 
+    distanceboss = sqrt(pow( x - ( mPosX + mWidth / 2 ), 2 ) + pow( y - ( mPosY + mHeight / 2 ), 2 ));
+    mPosX += mVelX*deltatime/1000;
+    mPosY += mVelY*deltatime/1000;
+    double angle1 = ((rand()%2 == 0) ? - 45*M_PI/180 : + 45*M_PI/180);
+    double angle2 = ((rand()%2 == 0) ? - 120*M_PI/180 : + 120*M_PI/180);
+
+    if (bosstelec > 10000 )
+    {
+        xc = mPosX;
+        yc = mPosY;
+        mPosX += (rand()%8) * 48 + 3*48 * (rand()%2==0 ? -1 : 1);
+        mPosY += (rand()%8) * 48 + 3*48 * (rand()%2==0 ? -1 : 1);
+        xc2 = mPosX;
+        yc2 = mPosY;
+        bosstele.setstarttime();
+        effects = true;
+    }
+
+    //direction
+    if (x > mPosX)
+    {
+        if (y > mPosY)
+        {
+            if ((y - mPosY) > (x - mPosX)) direction = BEHIND;
+            else direction = RIGHT;
+        }
+        else
+        {
+            if ((mPosY - y) > (x - mPosX)) direction = FRONT;
+            else direction = RIGHT;
+        }
+    }
+    else
+    {
+        if (y > mPosY)
+        {
+            if ((y - mPosY) > (mPosX - x)) direction = BEHIND;
+            else direction = LEFT;
+        }
+        else
+        {
+            if ((mPosY - y) > (mPosX - x)) direction = FRONT;
+            else direction = LEFT;
+        }
+    }
+
+    //x,y trong khoảng
+    if( mPosX < 96 )
+    {
+        mPosX = 96;
+    }
+    else if ( mPosX + mWidth > 2400 )
+    {
+        mPosX = 2400 - mWidth;
+    }
+    if( mPosY < 240 )
+    {
+        mPosY = 240;
+    }
+    else if ( mPosY + mHeight > 2592 )
+    {
+        mPosY = 2592 - mHeight;
+    }
+
+    if(lasttimea > 2000 && lasttimeb > 1500)
+    {
+        if (distanceboss > 15*48)
+        {
+            mVelX = datas.speed * cos(atan2(( y - mPosY ) , ( x - mPosX )));
+            mVelY = datas.speed * sin(atan2(( y - mPosY ) , ( x - mPosX )));
+        }
+        if (distanceboss > 5*48)
+        {
+            mVelX = datas.speed * cos(atan2(( y - mPosY ) , ( x - mPosX )) + angle1);
+            mVelY = datas.speed * sin(atan2(( y - mPosY ) , ( x - mPosX )) + angle1);
+        }
+        a.setstarttime();
+    }
+    if (lasttimeb > 1500)
+    {
+        if (distanceboss < 5*48)
+        {
+            mVelX = datas.speed * 1.25 * cos(atan2(( y - mPosY ) , ( x - mPosX )) + angle2);
+            mVelY = datas.speed * 1.25 * sin(atan2(( y - mPosY ) , ( x - mPosX )) + angle2); 
+            b.setstarttime();
+            a.setstarttime();
+        }
+    }
+
+    if (bossphase2)
+    {
+        if (regen.gettime() > 1000 )
+        {
+            datas.health ++;
+            if (datas.health > 1000) datas.health = 1000;
+            regen.setstarttime();
+        }
+    }
+}
+
+void Characters::bosstelee()
+{
+    xc = mPosX;
+    yc = mPosY;
+    mPosX += (rand()%8) * 48 + 3*48 * (rand()%2==0 ? -1 : 1);
+    mPosY += (rand()%8) * 48 + 3*48 * (rand()%2==0 ? -1 : 1);
+    xc2 = mPosX;
+    yc2 = mPosY;
+    bosstele.setstarttime();
+    effects = true;
+}
+
+int Characters::skillboss()
+{
+    bossskillc = bossskill.gettime();
+    if (skillonboss2) 
+    {
+        bossskill.setstarttime();
+    }
+    else if (bossskillc > 5000 && !skillonboss)
+    {
+        skill = rand()%5 + 1;
+        skillonboss = true;
+        skillonboss2 = true;
+    }
+    else skill = 0;
+
+    return skill;
+}
+
+void Characters::animatedboss(int mx, int my)
+{
+    if (SDL_GetTicks() - lasttime > 1000/framerate) {
+        cframe = (cframe + 1) % 3;
+        lasttime = SDL_GetTicks();
+    }
+    if (mTexture != nullptr)
+    {
+        if (!bossphase2)
+        {
+            if (mVelX == 0 && mVelY == 0)
+            {
+                if (cframe != 1 && b1)
+                {
+                    switch (direction)
+                    {
+                        case FRONT:
+                        mTexture->render(mx, my, nullptr, &clipss[9+cframe]);
+                        break;
+
+                        case BEHIND:
+                        mTexture->render(mx, my, nullptr, &clipss[0+cframe]);
+                        break;
+
+                        case RIGHT:
+                        mTexture->render(mx, my, nullptr, &clipss[6+cframe]);
+                        break;
+
+                        case LEFT:
+                        mTexture->render(mx, my, nullptr, &clipss[3+cframe]);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else
+                {
+                    b1 = false;
+                    switch (direction)
+                    {
+                        case FRONT:
+                        mTexture->render(mx, my, nullptr, &clipss[10]);
+                        break;
+
+                        case BEHIND:
+                        mTexture->render(mx, my, nullptr, &clipss[1]);
+                        break;
+
+                        case RIGHT:
+                        mTexture->render(mx, my, nullptr, &clipss[7]);
+                        break;
+
+                        case LEFT:
+                        mTexture->render(mx, my, nullptr, &clipss[4]);
+                        break;
+                    
+                    default:
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                b1 = true;
+                switch (direction)
+                {
+                    case FRONT:
+                    mTexture->render(mx, my, nullptr, &clipss[9+cframe]);
+                    break;
+
+                    case BEHIND:
+                    mTexture->render(mx, my, nullptr, &clipss[0+cframe]);
+                    break;
+
+                    case RIGHT:
+                    mTexture->render(mx, my, nullptr, &clipss[6+cframe]);
+                    break;
+
+                    case LEFT:
+                    mTexture->render(mx, my, nullptr, &clipss[3+cframe]);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        else if (bossphase2)
+        {
+            if (mVelX == 0 && mVelY == 0)
+            {
+                if (cframe != 1 && b1)
+                {
+                    switch (direction)
+                    {
+                        case FRONT:
+                        mTexture->render(mx, my, nullptr, &clipss[9+cframe+12]);
+                        break;
+
+                        case BEHIND:
+                        mTexture->render(mx, my, nullptr, &clipss[0+cframe+12]);
+                        break;
+
+                        case RIGHT:
+                        mTexture->render(mx, my, nullptr, &clipss[6+cframe+12]);
+                        break;
+
+                        case LEFT:
+                        mTexture->render(mx, my, nullptr, &clipss[3+cframe+12]);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else
+                {
+                    b1 = false;
+                    switch (direction)
+                    {
+                        case FRONT:
+                        mTexture->render(mx, my, nullptr, &clipss[10+12]);
+                        break;
+
+                        case BEHIND:
+                        mTexture->render(mx, my, nullptr, &clipss[1+12]);
+                        break;
+
+                        case RIGHT:
+                        mTexture->render(mx, my, nullptr, &clipss[7+12]);
+                        break;
+
+                        case LEFT:
+                        mTexture->render(mx, my, nullptr, &clipss[4+12]);
+                        break;
+                    
+                    default:
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                b1 = true;
+                switch (direction)
+                {
+                    case FRONT:
+                    mTexture->render(mx, my, nullptr, &clipss[9+cframe+12]);
+                    break;
+
+                    case BEHIND:
+                    mTexture->render(mx, my, nullptr, &clipss[0+cframe+12]);
+                    break;
+
+                    case RIGHT:
+                    mTexture->render(mx, my, nullptr, &clipss[6+cframe+12]);
+                    break;
+
+                    case LEFT:
+                    mTexture->render(mx, my, nullptr, &clipss[3+cframe+12]);
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+
+        if (effects)
+        {
+            if (SDL_GetTicks() - lasttimee > 1000 / 10) 
+            {
+                eframe = (eframe + 1) % (13);
+                lasttimee = SDL_GetTicks();
+            }
+            SDL_Rect custom;
+            custom.w = 96;
+            custom.h = 96;
+            custom.x = xc - camx2 - 24;
+            custom.y = yc - camy2 - 24;
+            eTexture->render(0, 0, &custom, &clipbf[eframe-1]);
+
+            custom.x = xc2 - camx2 - 24;
+            custom.y = yc2 - camy2 - 24;
+            eTexture->render(0, 0, &custom, &clipbf[eframe-1]);
+
+            if (eframe == 12)
+            {
+                effects = false;
+                eframe = 0; 
+            }
+        }
+    }
+}
+
+void Characters::getcamxy(double x, double y)
+{
+    camx2 = x;
+    camy2 = y;
+}
+
+void Characters::addtextureeffectboss(Texture* texture)
+{
+    if ( texture != nullptr)
+    {
+        eTexture = texture;
+        clipbf.clear();
+        for (int i = 0; i < 12; i++)
+        {
+            SDL_Rect clip;
+            clip.x = 0;
+            clip.y = i * 192;
+            clip.w = 192;
+            clip.h = 192;
+            clipbf.push_back(clip);
+        }
+    }
+    else cout << "error" << endl;
+}
+
